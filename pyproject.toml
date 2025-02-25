@@ -1,0 +1,11 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bezierv"
+authors = [
+    {name = "Andrés L. Medaglia", email = "amedagli@uniandes.edu.co"},
+    {name = "Esteban Leiva", email = "e.leivam@uniandes.edu.co"},
+]
+version = "0.0.0"
