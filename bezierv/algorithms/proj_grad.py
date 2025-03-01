@@ -162,7 +162,7 @@ class ProjGrad:
 
     def fit(self, controls_z0: np.array, step = 0.01, maxiter = 1000):
         """
-        Fit the Bezier curve to the empirical CDF data using projected gradient descent.
+        Fit the Bezier random variable to the empirical CDF data using projected gradient descent.
 
         Starting from an initial guess for the z control points, this method iteratively
         updates the z control points by taking gradient descent steps and projecting the
