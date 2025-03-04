@@ -65,7 +65,7 @@ class ConvBezier:
             if y_val < self.bezierv_y.controls_x[0]:
                 cumul_z = 0
             elif y_val > self.bezierv_y.controls_x[-1]:
-                cumul_z = self.bezierv_x.pdf_numerator(t) 
+                cumul_z = self.bezierv_x.pdf_numerator(t)
             else:
                 y_inv = self.bezierv_y.root_find(y_val)
                 cumul_z = self.bezierv_x.pdf_numerator(t) * self.bezierv_y.eval_t(y_inv)[1]
@@ -102,8 +102,12 @@ class ConvBezier:
         for i in range(self.m):
             emp_cdf_data[i] = self.cdf_z(data[i])
 
-        controls_x = np.linspace(low_bound, up_bound, self.bezierv_conv.n + 1)
-        proj_grad = ProjGrad(self.bezierv_conv, controls_x, data, emp_cdf_data)
+        if self.bezierv_x.n == self.bezierv_y.n:
+            controls_x = self.bezierv_x.controls_x + self.bezierv_y.controls_x
+        else:
+            #TODO: Implement the case where the number of control points is different with quantiles
+            raise NotImplementedError
+        proj_grad = ProjGrad(self.bezierv_conv, data, controls_x, emp_cdf_data)
         controls_z = np.linspace(0, 1, self.bezierv_conv.n + 1)
         self.bezierv_conv = proj_grad.fit(controls_z)
-        return self.bezierv_conv
+        return self.bezierv_conv, emp_cdf_data, data

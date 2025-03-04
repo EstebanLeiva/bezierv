@@ -3,6 +3,7 @@ import math
 import matplotlib.pyplot as plt
 
 from scipy.optimize import brentq, bisect
+from scipy.integrate import quad
 from statsmodels.distributions.empirical_distribution import ECDF
 
 class Bezierv:
@@ -41,6 +42,8 @@ class Bezierv:
             Array of binomial coefficients (n).
         comb_minus : np.array
             Array of binomial coefficients (n - 1).
+        support : tuple
+            The support of the Bezier random variable (initialized as (-inf, inf)).
         controls_x : np.array
             x-coordinates of the control points.
         controls_z : np.array
@@ -59,6 +62,7 @@ class Bezierv:
         self.deltas_z = np.zeros(n)
         self.comb = np.zeros(n + 1)
         self.comb_minus = np.zeros(n)
+        self.support = (-np.inf, np.inf)
 
         if controls_x is None and controls_z is None:
             self.controls_x = np.zeros(n + 1)
@@ -71,20 +75,16 @@ class Bezierv:
 
         # moments
         self.mean = math.nan
-        self.var = math.nan
-        self.skew = math.nan
-        self.kurt = math.nan
+        self.variance = math.nan
+        self.skewness = math.nan
+        self.kurtosis = math.nan
 
         # initialize
         self.combinations()
 
-    def update_bezierv(self, controls_x, controls_z):
+    def update_bezierv(self, controls_x, controls_z, bounds):
         """
-        Update the control points for the Bezier curve and recalculate deltas.
-
-        This method sets the control points for the curve by updating the instance
-        attributes `controls_x` and `controls_z` with the provided values. It then
-        calls the `deltas` method to update any dependent computations.
+        Update the control points for the Bezier curve, bounds and recalculate deltas.
 
         Parameters
         ----------
@@ -99,6 +99,7 @@ class Bezierv:
         """
         self.controls_x = controls_x
         self.controls_z = controls_z
+        self.bounds = bounds
         self.deltas()
 
     def combinations(self):
@@ -354,23 +355,83 @@ class Bezierv:
         for i in range(self.n):
             pdf_num_z += self.bernstein(t, i, self.comb_minus, self.n - 1) * self.deltas_z[i]
         return pdf_num_z
-    
-    def plot_cdf(self, data, ecdf=True):
+
+    def get_mean(self):
         """
-        Plot the cumulative distribution function (CDF) of the Bezier random variable alongside the 
-        empirical CDF.
+        Compute and return the mean of the distribution.
+
+        This method calculates the mean by integrating x * pdf(x) over the interval
+        defined by self.bounds. The integration is performed using the quad function.
 
         Parameters
         ----------
-        data : array-like
-            The data points at which to evaluate and plot the CDF.
+        None
+
+        Returns
+        -------
+        float
+            The mean value of the distribution.
+        """
+        a, b = self.bounds
+        self.mean, _ = quad(lambda x: x * self.pdf_x(x), a, b)
+        return self.mean
+
+    def get_variance(self):
+        #TODO: check, it is not giving correct values
+        a, b = self.bounds
+        E_x2, _ = quad(lambda x: x**2 * self.pdf_x(x), a, b)
+        if self.mean == math.nan:
+            self.variance = E_x2 - self.mean()**2
+        else:
+            self.variance = E_x2 - self.mean**2
+        return self.variance
+
+    def get_skewness(self):
+        #TODO: check, it is not giving correct values
+        a, b = self.bounds
+        if self.mean == math.nan:
+            self.mean()
+        if self.variance == math.nan:
+            self.variance()
+        mu_3, _ = quad(lambda x: (x - self.mean)**3 * self.pdf_x(x), a, b)
+        self.skewness = mu_3 / self.variance**(3/2)
+        return self.skewness
+
+    def get_kurtosis(self):
+        #TODO: check, it is not giving correct values
+        a, b = self.bounds
+        if self.mean == math.nan:
+            self.mean()
+        if self.variance == math.nan:
+            self.variance()
+        mu_4, _ = quad(lambda x: (x - self.mean)**4 * self.pdf_x(x), a, b)
+        self.kurtosis = mu_4 / self.variance**2
+        return self.kurtosis
+    
+    def plot_cdf(self, data=None, ecdf=None, num_points=100):
+        """
+        Plot the cumulative distribution function (CDF) of the Bezier random variable alongside 
+        the empirical CDF (if data is provided).
+
+        If no data is provided, a linspace is generated based on the minimum and maximum of the 
+        control points in the x-direction.
+
+        Parameters
+        ----------
+        data : array-like, optional
+            The data points at which to evaluate and plot the CDF. If None, a linspace is used.
         ecdf : bool, optional
-            If True, the empirical CDF of the data is also plotted (default is True).
+            If None and data is provided, the empirical CDF is also plotted (default is None).
+        num_points : int, optional
+            The number of points to use in the linspace when data is not provided (default is 100).
 
         Returns
         -------
         None
         """
+        if data is None:
+            data = np.linspace(np.min(self.controls_x), np.max(self.controls_x), num_points)
+        
         x_bezier = np.zeros(len(data))
         cdf_x_bezier = np.zeros(len(data))
 
@@ -379,28 +440,38 @@ class Bezierv:
             x_bezier[i] = p_x
             cdf_x_bezier[i] = p_z
 
-        if ecdf:
-            ecdf =ECDF(data)
-            plt.plot(data, ecdf(data), label='Empirical CDF', linestyle='--', color='black')
+        if (ecdf is None) and (data is not None):
+            ecdf_fn = ECDF(data)
+            plt.plot(data, ecdf_fn(data), label='Empirical CDF', linestyle='--', color='black')
+        elif (ecdf is not None) and (data is not None):
+            plt.plot(data, ecdf, label='Empirical CDF', linestyle='--', color='black')
 
         plt.plot(x_bezier, cdf_x_bezier, label='Bezier CDF', linestyle='--')
         plt.scatter(self.controls_x, self.controls_z, label='Control Points', color='red')
         plt.legend()
         plt.show()
 
-    def plot_pdf(self, data):
+    def plot_pdf(self, data=None, num_points=100):
         """
         Plot the probability density function (PDF) of the Bezier random variable.
 
+        If no data is provided, a linspace is generated based on the minimum and maximum of the 
+        control points in the x-direction.
+
         Parameters
         ----------
-        data : array-like
-            The data points at which to evaluate and plot the PDF.
+        data : array-like, optional
+            The data points at which to evaluate and plot the PDF. If None, a linspace is used.
+        num_points : int, optional
+            The number of points to use in the linspace when data is not provided (default is 100).
 
         Returns
         -------
         None
         """
+        if data is None:
+            data = np.linspace(np.min(self.controls_x), np.max(self.controls_x), num_points)
+
         x_bezier = np.zeros(len(data))
         pdf_x_bezier = np.zeros(len(data))
 
@@ -409,17 +480,6 @@ class Bezierv:
             x_bezier[i] = p_x
             pdf_x_bezier[i] = self.pdf_x(data[i])
 
-        plt.scatter(x_bezier, pdf_x_bezier, color='red')
+        plt.plot(x_bezier, pdf_x_bezier, color='blue')
         plt.legend()
         plt.show()
-
-
-
-
-
-
-        
-    
-    
-    
-

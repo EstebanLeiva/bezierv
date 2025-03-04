@@ -5,7 +5,7 @@ from scipy.optimize import brentq
 from bezierv.classes.bezierv import Bezierv
 
 class ProjGrad:
-    def __init__(self, bezierv: Bezierv, controls_x: np.array, data: np.array, emp_cdf_data: np.array=None):
+    def __init__(self, bezierv: Bezierv, data: np.array, controls_x: np.array=None, emp_cdf_data: np.array=None):
         """
         Initialize the ProjGrad instance with a Bezierv object and data to fit.
 
@@ -47,8 +47,11 @@ class ProjGrad:
         """
         self.bezierv = bezierv
         self.n = bezierv.n
-        self.controls_x = controls_x
         self.data = np.sort(data)
+        if controls_x is None:
+            self.controls_x = self.get_controls_x(self.data)
+        else:
+            self.controls_x = controls_x
         self.m = len(data)
         self.t_data = self.get_t_data(data)
         self.fit_error = np.inf
@@ -58,6 +61,28 @@ class ProjGrad:
             self.emp_cdf_data = emp_cdf(data)
         else:
             self.emp_cdf_data = emp_cdf_data
+
+    def get_controls_x(self, data):
+        """
+        Compute the control points for the x-coordinates of the Bezier curve.
+
+        The control points are computed by taking the quantiles of the data points
+        as the x-coordinates of the control points.
+
+        Parameters
+        ----------
+        data : np.array
+            The sorted data points.
+
+        Returns
+        -------
+        np.array
+            The control points for the x-coordinates of the Bezier curve.
+        """
+        controls_x = np.zeros(self.n + 1)
+        for i in range(self.n + 1):
+            controls_x[i] = np.quantile(data, i/self.n)
+        return controls_x
 
     def get_t_data(self, data):
         """
@@ -201,7 +226,7 @@ class ProjGrad:
         for j in range(self.m):
             fit_error += (self.bezierv.poly_z(self.t_data[j], z) - self.emp_cdf_data[j])**2
         
-        self.bezierv.update_bezierv(self.controls_x, z)
+        self.bezierv.update_bezierv(self.controls_x, z, (self.data[0], self.data[-1]))
         self.fit_error = fit_error/self.m
 
         return self.bezierv
