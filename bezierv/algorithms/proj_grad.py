@@ -40,8 +40,8 @@ class ProjGrad:
             The number of data points.
         t_data : np.array
             The values of t corresponding to the data points on the Bezier random variable.
-        fit_error : float
-            The fitting error, initialized to infinity.
+        mse : float
+            The fitting error (mse), initialized to infinity.
         emp_cdf_data : np.array
             The empirical CDF values for the data points.
         """
@@ -54,7 +54,7 @@ class ProjGrad:
             self.controls_x = controls_x
         self.m = len(data)
         self.t_data = self.get_t_data(data)
-        self.fit_error = np.inf
+        self.mse = np.inf
 
         if emp_cdf_data is None:
             emp_cdf = ECDF(data)
@@ -222,11 +222,11 @@ class ProjGrad:
     
             z = z_prime
         
-        fit_error = 0
+        se = 0
         for j in range(self.m):
-            fit_error += (self.bezierv.poly_z(self.t_data[j], z) - self.emp_cdf_data[j])**2
+            se += (self.bezierv.poly_z(self.t_data[j], z) - self.emp_cdf_data[j])**2
         
         self.bezierv.update_bezierv(self.controls_x, z, (self.data[0], self.data[-1]))
-        self.fit_error = fit_error/self.m
+        self.mse = se/self.m
 
         return self.bezierv
