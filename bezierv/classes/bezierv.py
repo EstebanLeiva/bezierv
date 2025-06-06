@@ -408,7 +408,7 @@ class Bezierv:
         self.kurtosis = mu_4 / self.variance**2
         return self.kurtosis
     
-    def plot_cdf(self, data=None, ecdf=None, num_points=100):
+    def plot_cdf(self, data=None, ecdf=None, num_points=100, ax=None):
         """
         Plot the cumulative distribution function (CDF) of the Bezier random variable alongside 
         the empirical CDF (if data is provided).
@@ -429,6 +429,7 @@ class Bezierv:
         -------
         None
         """
+        #TODO: when data is none, just the fitted cdf should be displayed
         if data is None:
             data = np.linspace(np.min(self.controls_x), np.max(self.controls_x), num_points)
         
@@ -440,16 +441,18 @@ class Bezierv:
             x_bezier[i] = p_x
             cdf_x_bezier[i] = p_z
 
+        if ax is None:
+            ax = plt.gca() 
+
         if (ecdf is None) and (data is not None):
             ecdf_fn = ECDF(data)
-            plt.plot(data, ecdf_fn(data), label='Empirical CDF', linestyle='--', color='black')
+            ax.plot(data, ecdf_fn(data), label='Empirical CDF', linestyle='--', color='black')
         elif (ecdf is not None) and (data is not None):
-            plt.plot(data, ecdf, label='Empirical CDF', linestyle='--', color='black')
+            ax.plot(data, ecdf, label='Empirical CDF', linestyle='--', color='black')
 
-        plt.plot(x_bezier, cdf_x_bezier, label='Bezier CDF', linestyle='--')
-        plt.scatter(self.controls_x, self.controls_z, label='Control Points', color='red')
-        plt.legend()
-        plt.show()
+        ax.plot(x_bezier, cdf_x_bezier, label='Bezier CDF', linestyle='--')
+        ax.scatter(self.controls_x, self.controls_z, label='Control Points', color='red')
+        ax.legend()
 
     def plot_pdf(self, data=None, num_points=100):
         """

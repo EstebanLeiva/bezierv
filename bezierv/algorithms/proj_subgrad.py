@@ -4,8 +4,8 @@ from scipy.optimize import brentq
 
 from bezierv.classes.bezierv import Bezierv
 
-class ProjGrad:
-    def __init__(self, bezierv: Bezierv, data: np.array, controls_x: np.array=None, emp_cdf_data: np.array=None):
+class ProjSubgrad:
+    def __init__(self, bezierv: Bezierv, data: np.array, emp_cdf_data: np.array=None):
         """
         Initialize the ProjGrad instance with a Bezierv object and data to fit.
 
@@ -48,12 +48,7 @@ class ProjGrad:
         self.bezierv = bezierv
         self.n = bezierv.n
         self.data = np.sort(data)
-        if controls_x is None:
-            self.controls_x = self.get_controls_x(self.data)
-        else:
-            self.controls_x = controls_x
         self.m = len(data)
-        self.t_data = self.get_t_data(data)
         self.mse = np.inf
 
         if emp_cdf_data is None:
@@ -84,7 +79,7 @@ class ProjGrad:
             controls_x[i] = np.quantile(data, i/self.n)
         return controls_x
 
-    def get_t_data(self, data):
+    def get_t_data(self, controls_x, data):
         """
         Compute values of t for each data point using root-finding.
 
@@ -103,7 +98,7 @@ class ProjGrad:
         """
         t_data = np.zeros(self.m)
         for i in range(self.m):
-            t_data[i] = self.root_find(self.controls_x, data[i])
+            t_data[i] = self.root_find(controls_x, data[i])
         return t_data
     
     def root_find(self, controls_x, data_i):
@@ -135,14 +130,16 @@ class ProjGrad:
         t = brentq(poly_x_sample, 0, 1, args=(controls_x, data_i))
         return t
     
-    def grad(self, t: float, controls_z: np.array):
+    def subgrad(self, t: float, controls_z: np.array):
         """
-        Compute the gradient of the fitting objective with respect to the z control points.
+        Compute the subgradient of the fitting objective with respect to the (x, z) control points.
 
         Parameters
         ----------
         t : float or np.array
             The parameter values corresponding to the data points. Expected to be an array of shape (m,).
+        controls_x : np.array
+            The current x-coordinates of the control points.
         controls_z : np.array
             The current z-coordinates of the control points.
 
@@ -151,6 +148,14 @@ class ProjGrad:
         np.array
             An array representing the gradient with respect to each z control point.
         """
+        subgrad_x = np.zeros(self.n + 1)
+        for j in range(self.m):
+            inner_sum = np.zeros(self.n + 1)
+            for i in range(self.n + 1):
+                inner_sum[i] = self.bezierv.bernstein(t[j], i, self.bezierv.comb, self.n)
+
+            subgrad_x += 2 * (self.bezierv.poly_x(t[j], controls_z) - self.emp_cdf_data[j]) * (1 / self.m) * inner_sum
+
         grad_z = np.zeros(self.n + 1)
         for j in range(self.m):
             inner_sum = np.zeros(self.n + 1)
@@ -159,7 +164,31 @@ class ProjGrad:
 
             grad_z += 2 * (self.bezierv.poly_z(t[j], controls_z) - self.emp_cdf_data[j]) * inner_sum
 
-        return grad_z
+        return subgrad_x, grad_z
+    
+    def project_x(self, controls_x: np.array):
+        """
+        Project the x control points onto the feasible set.
+
+        The projection is performed by first clipping the control points to the [X_(1), X_(m)] interval,
+        sorting them in ascending order, and then enforcing the boundary conditions by setting
+        the first control point to X_(1) and the last control point to X_(m).
+
+        Parameters
+        ----------
+        controls_x : np.array
+            The current z-coordinates of the control points.
+
+        Returns
+        -------
+        np.array
+            The projected z control points that satisfy the constraints.
+        """
+        x_prime = np.clip(controls_x.copy(), a_min= self.data[0], a_max=self.data[-1])
+        x_prime.sort()
+        x_prime[0] = self.data[0]
+        x_prime[-1] = self.data[-1]
+        return x_prime
     
     def project_z(self, controls_z: np.array):
         """
@@ -185,7 +214,31 @@ class ProjGrad:
         z_prime[-1] = 1
         return z_prime
 
-    def fit(self, controls_z0: np.array, step = 0.001, maxiter = 1000):
+    def objective_function(self, z: np.array, t: np.array):
+        """
+        Compute the objective function value for the given z control points.
+
+        This method calculates the sum of squared errors between the Bezier random variable's CDF
+        and the empirical CDF data.
+
+        Parameters
+        ----------
+        z : np.array
+            The z-coordinates of the control points.
+        t : np.array
+            The parameter values corresponding to the data points.
+
+        Returns
+        -------
+        float
+            The value of the objective function (MSE).
+        """
+        se = 0
+        for j in range(self.m):
+            se += (self.bezierv.poly_z(t[j], z) - self.emp_cdf_data[j])**2
+        return se / self.m
+
+    def fit(self, controls_z0: np.array, controls_x0: np.array=None, step = 0.001, maxiter = 1000):
         """
         Fit the Bezier random variable to the empirical CDF data using projected gradient descent.
 
@@ -210,23 +263,29 @@ class ProjGrad:
         Bezierv
             The updated Bezierv instance with fitted control points.
         """
+        f_best = np.inf
+        x_best = None
+        z_best = None
+        if controls_x0 is not None:
+            x = self.project_x(controls_x0)
+        else:
+            x = self.project_x(self.get_controls_x(self.data))
         z = controls_z0
+        t = self.get_t_data(x, self.data)
         for i in range(maxiter):
-            grad_z = self.grad(self.t_data, z)
+            subgrad_x, grad_z = self.subgrad(t, z)
             z_prime = self.project_z(z - step * grad_z)
-            
-            if np.linalg.norm(z_prime - z) < 1e-4:
-                z = z_prime
-                print(f'Converged in {i} iterations')
-                break
-    
+            x_prime = self.project_x(x - step * subgrad_x)
+            t_prime = self.get_t_data(x_prime, self.data)
+            mse_prime = self.objective_function(z_prime, t_prime)
+            if mse_prime < f_best:
+                f_best = mse_prime
+                x_best = x_prime
+                z_best = z_prime
+            x = x_prime
             z = z_prime
-        
-        se = 0
-        for j in range(self.m):
-            se += (self.bezierv.poly_z(self.t_data[j], z) - self.emp_cdf_data[j])**2
-        
-        self.bezierv.update_bezierv(self.controls_x, z, (self.data[0], self.data[-1]))
-        self.mse = se/self.m
+            t = t_prime
+
+        self.bezierv.update_bezierv(x_best, z_best, (self.data[0], self.data[-1]))
 
         return self.bezierv

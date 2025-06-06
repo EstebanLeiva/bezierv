@@ -151,14 +151,14 @@ class NonLinearSolver:
 
         # subject to first_control_x:
         #    x[0] = X[1];
-        model.first_control_x = pyo.Constraint(expr=model.x[0] == self.data[0])
+        model.first_control_x = pyo.Constraint(expr=model.x[0] <= self.data[0]) #==
         # subject to first_control_z:
         #    z[0] = 0;
         model.first_control_z = pyo.Constraint(expr=model.z[0] == 0)
 
         # subject to last_control_x:
         #    x[n] = X[m];
-        model.last_control_x = pyo.Constraint(expr=model.x[self.n] == self.data[self.m - 1])
+        model.last_control_x = pyo.Constraint(expr=model.x[self.n] >= self.data[self.m - 1]) # ==
         # subject to last_control_z:
         #    z[n] = 1;
         model.last_control_z = pyo.Constraint(expr=model.z[self.n] == 1)
@@ -172,23 +172,13 @@ class NonLinearSolver:
  
         # Set solver
         pyo_solver = SolverFactory(solver)
-  
-        # Write the model to an NL file    
-        results = pyo_solver.solve(model, tee=True)
         
         try:
+            results = pyo_solver.solve(model, tee=False, timelimit=60)
             if (results.solver.status == SolverStatus.ok) and (results.solver.termination_condition == TerminationCondition.optimal):
-                # Solution is optimal (local or global) and feasible
                 controls_x = np.array([model.x[i]() for i in model.N])
                 controls_z = np.array([model.z[i]() for i in model.N])
-                
-                # Stores fitted cdf in a list of tuples (X_j, F_hat(X_j))
-                fcdf = [(self.data[j - 1], model.F_hat[j]()) for j in model.M]
-                # Stores "time" parameter t in a list of tuples (X_j, t_j)
-                t = [(self.data[j - 1], model.t[j]()) for j in model.M]
-                # Retrieves mean square error from model's objective
                 self.mse = model.mse()
-
                 self.bezierv.update_bezierv(controls_x, controls_z, (self.data[0], self.data[-1]))
         except Exception as e:
             print("NonLinearSolver [fit]: An exception occurred during model evaluation:", e)
