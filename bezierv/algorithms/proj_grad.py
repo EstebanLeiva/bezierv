@@ -217,7 +217,6 @@ class ProjGrad:
             
             if np.linalg.norm(z_prime - z) < 1e-4:
                 z = z_prime
-                print(f'Converged in {i} iterations')
                 break
     
             z = z_prime

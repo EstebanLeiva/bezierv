@@ -74,7 +74,7 @@ class ConvBezier:
         result, _ = quad(integrand, 0, 1)
         return self.bezierv_x.n * result
 
-    def conv(self):
+    def conv(self, step=0.001):
         """
         Numerically compute the convolution of two Bezier random variables.
 
@@ -109,5 +109,5 @@ class ConvBezier:
             raise NotImplementedError
         proj_grad = ProjGrad(self.bezierv_conv, data, controls_x, emp_cdf_data)
         controls_z = np.linspace(0, 1, self.bezierv_conv.n + 1)
-        self.bezierv_conv = proj_grad.fit(controls_z)
-        return self.bezierv_conv, emp_cdf_data, data
+        self.bezierv_conv = proj_grad.fit(controls_z, step=step)
+        return self.bezierv_conv

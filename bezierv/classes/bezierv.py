@@ -294,6 +294,32 @@ class Bezierv:
         """
         t = self.root_find(x)
         return self.eval_t(t)
+
+    def quantile(self, alpha, method='brentq'):
+        """
+        Compute the quantile function (inverse CDF) for a given probability level alpha.
+
+        This method finds the value of t such that the cumulative distribution function (CDF) at t equals alpha,
+        and then evaluates the x-coordinate at that t.
+
+        Parameters
+        ----------
+        alpha : float
+            The probability level for which to compute the quantile (in [0, 1]).
+
+        Returns
+        -------
+        float
+            The quantile value corresponding to the given alpha.
+        """
+        def cdf_t(t):
+            return self.poly_z(t) - alpha
+        
+        if method == 'brentq':
+            t = brentq(cdf_t, 0, 1, args=(alpha,))
+        elif method == 'bisect':
+            t = bisect(cdf_t, 0, 1, args=(alpha,))
+        return self.poly_x(t)
     
     def pdf_t(self, t):
         """
