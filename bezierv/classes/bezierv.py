@@ -294,6 +294,30 @@ class Bezierv:
         """
         t = self.root_find(x)
         return self.eval_t(t)
+    
+    def cdf_x(self, x):
+        """
+        Compute the cumulative distribution function (CDF) at a given x-coordinate.
+
+        This method evaluates the CDF of the Bezier random variable at the specified x-coordinate
+        by finding the corresponding parameter t and then computing the z-coordinate at that t.
+
+        Parameters
+        ----------
+        x : float
+            The x-coordinate at which to evaluate the CDF.
+
+        Returns
+        -------
+        float
+            The CDF value at the given x-coordinate.
+        """
+        if x < self.controls_x[0]:
+            return 0
+        if x > self.controls_x[-1]:
+            return 1
+        _, p_z = self.eval_x(x)
+        return p_z
 
     def quantile(self, alpha, method='brentq'):
         """
@@ -312,7 +336,7 @@ class Bezierv:
         float
             The quantile value corresponding to the given alpha.
         """
-        def cdf_t(t):
+        def cdf_t(t, alpha):
             return self.poly_z(t) - alpha
         
         if method == 'brentq':
