@@ -133,9 +133,9 @@ class NonLinearSolver:
 
         # subject to sorted_t{j in 1..m-1}:
         #    t[j] <= t[j+1];
-        def sorted_t_rule(model, j):
-          return model.t[j] <= model.t[j + 1]
-        model.ctr_sorted_t = pyo.Constraint(model.M_m , rule=sorted_t_rule)
+        #def sorted_t_rule(model, j):
+        #  return model.t[j] <= model.t[j + 1]
+        #model.ctr_sorted_t = pyo.Constraint(model.M_m , rule=sorted_t_rule)
         
         # subject to convexity_x {i in 0..n-1}:
         #    x[i] <= x[i+1];

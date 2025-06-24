@@ -156,17 +156,13 @@ class NelderMeadSolver:
         penalty += np.sum(abs(np.minimum(0, delta_xs)))
 
         # 3. Penalty for x control points being outside the data range
-        # Penalize if x[0] goes above the first data point
-        if x[0] > self.data[0]:
-            penalty += abs(x[0] - self.data[0])
-            
-        # Penalize if x[-1] goes below the last data point
-        if x[-1] < self.data[-1]:
-            penalty += abs(self.data[-1] - x[-1])
+       
+        penalty += abs(x[0] - self.data[0])
+        penalty += abs(self.data[-1] - x[-1])
     
         return mse + penalty_weight * penalty
 
-    def solve(self, controls_x0, controls_z0):
+    def fit(self, controls_x0, controls_z0):
         start = np.concatenate((controls_x0, controls_z0))
         result = minimize(
             fun=self.objective_function_lagrangian, # Use the function with penalties for optimization

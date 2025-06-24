@@ -185,7 +185,7 @@ class ProjGrad:
         z_prime[-1] = 1
         return z_prime
 
-    def fit(self, controls_z0: np.array, step = 0.001, maxiter = 1000):
+    def fit(self, controls_z0: np.array, step = 0.001, maxiter = 1000, threshold = 1e-3):
         """
         Fit the Bezier random variable to the empirical CDF data using projected gradient descent.
 
@@ -215,7 +215,7 @@ class ProjGrad:
             grad_z = self.grad(self.t_data, z)
             z_prime = self.project_z(z - step * grad_z)
             
-            if np.linalg.norm(z_prime - z) < 1e-4:
+            if np.linalg.norm(z_prime - z) < threshold:
                 z = z_prime
                 break
     

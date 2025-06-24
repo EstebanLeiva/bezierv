@@ -319,7 +319,7 @@ class Bezierv:
         _, p_z = self.eval_x(x)
         return p_z
 
-    def quantile(self, alpha, method='brentq'):
+    def get_quantile(self, alpha, method='brentq'):
         """
         Compute the quantile function (inverse CDF) for a given probability level alpha.
 
@@ -458,7 +458,7 @@ class Bezierv:
         self.kurtosis = mu_4 / self.variance**2
         return self.kurtosis
     
-    def plot_cdf(self, data=None, ecdf=None, num_points=100, ax=None):
+    def plot_cdf(self, data=None, num_points=100, ax=None):
         """
         Plot the cumulative distribution function (CDF) of the Bezier random variable alongside 
         the empirical CDF (if data is provided).
@@ -470,8 +470,6 @@ class Bezierv:
         ----------
         data : array-like, optional
             The data points at which to evaluate and plot the CDF. If None, a linspace is used.
-        ecdf : bool, optional
-            If None and data is provided, the empirical CDF is also plotted (default is None).
         num_points : int, optional
             The number of points to use in the linspace when data is not provided (default is 100).
 
@@ -479,8 +477,9 @@ class Bezierv:
         -------
         None
         """
-        #TODO: when data is none, just the fitted cdf should be displayed
+        data_bool = True
         if data is None:
+            data_bool = False
             data = np.linspace(np.min(self.controls_x), np.max(self.controls_x), num_points)
         
         x_bezier = np.zeros(len(data))
@@ -494,17 +493,15 @@ class Bezierv:
         if ax is None:
             ax = plt.gca() 
 
-        if (ecdf is None) and (data is not None):
+        if data_bool:
             ecdf_fn = ECDF(data)
-            ax.plot(data, ecdf_fn(data), label='Empirical CDF', linestyle='--', color='black')
-        elif (ecdf is not None) and (data is not None):
-            ax.plot(data, ecdf, label='Empirical CDF', linestyle='--', color='black')
+            ax.plot(data, ecdf_fn(data), label='Empirical cdf', linestyle='--', color='black')
 
-        ax.plot(x_bezier, cdf_x_bezier, label='Bezier CDF', linestyle='--')
+        ax.plot(x_bezier, cdf_x_bezier, label='Bezier cdf', linestyle='--')
         ax.scatter(self.controls_x, self.controls_z, label='Control Points', color='red')
         ax.legend()
 
-    def plot_pdf(self, data=None, num_points=100):
+    def plot_pdf(self, data=None, num_points=100, ax=None):
         """
         Plot the probability density function (PDF) of the Bezier random variable.
 
@@ -528,11 +525,13 @@ class Bezierv:
         x_bezier = np.zeros(len(data))
         pdf_x_bezier = np.zeros(len(data))
 
+        if ax is None:
+            ax = plt.gca()
+
         for i in range(len(data)):
             p_x, _ = self.eval_x(data[i])
             x_bezier[i] = p_x
             pdf_x_bezier[i] = self.pdf_x(data[i])
 
-        plt.plot(x_bezier, pdf_x_bezier, color='blue')
-        plt.legend()
-        plt.show()
+        ax.plot(x_bezier, pdf_x_bezier, label='Bezier pdf', linestyle='-')
+        ax.legend()

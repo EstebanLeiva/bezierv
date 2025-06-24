@@ -74,7 +74,7 @@ class ConvBezier:
         result, _ = quad(integrand, 0, 1)
         return self.bezierv_x.n * result
 
-    def conv(self, step=0.001):
+    def conv(self, method='projgrad', step=0.001):
         """
         Numerically compute the convolution of two Bezier random variables.
 
