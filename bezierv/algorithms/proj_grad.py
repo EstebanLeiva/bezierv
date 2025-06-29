@@ -54,6 +54,7 @@ class ProjGrad:
             self.controls_x = controls_x
         self.m = len(data)
         self.t_data = self.get_t_data(data)
+        
         self.mse = np.inf
 
         if emp_cdf_data is None:
@@ -156,7 +157,6 @@ class ProjGrad:
             inner_sum = np.zeros(self.n + 1)
             for i in range(self.n + 1):
                 inner_sum[i] = self.bezierv.bernstein(t[j], i, self.bezierv.comb, self.n)
-
             grad_z += 2 * (self.bezierv.poly_z(t[j], controls_z) - self.emp_cdf_data[j]) * inner_sum
 
         return grad_z
@@ -214,11 +214,9 @@ class ProjGrad:
         for i in range(maxiter):
             grad_z = self.grad(self.t_data, z)
             z_prime = self.project_z(z - step * grad_z)
-            
             if np.linalg.norm(z_prime - z) < threshold:
                 z = z_prime
                 break
-    
             z = z_prime
         
         se = 0
