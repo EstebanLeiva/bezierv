@@ -3,13 +3,33 @@ from bezierv.classes.bezierv import Bezierv
 from typing import List
 from statsmodels.distributions.empirical_distribution import ECDF
 from scipy.optimize import brentq
-from bezierv.algorithms import proj_grad2 as pj
+from bezierv.algorithms import proj_grad as pj
 #from bezierv.algorithms import non_linear2 as nl
 #from bezierv.algorithms import nelder_mead2 as alg
 
 
 class DistFit:
     """
+    A class to fit a Bezier random variable to empirical data.
+
+    Attributes
+    ----------
+    data : List
+        The empirical data to fit the Bezier random variable to.
+    n : int
+        The number of control points minus one for the Bezier curve.
+    init_x : np.array
+        Initial control points for the x-coordinates of the Bezier curve.
+    init_z : np.array
+        Initial control points for the z-coordinates of the Bezier curve.
+    emp_cdf_data : np.array
+        The empirical cumulative distribution function (CDF) data derived from the empirical data.
+    bezierv : Bezierv
+        An instance of the Bezierv class representing the Bezier random variable.
+    m : int
+        The number of empirical data points.
+    mse : float
+        The mean squared error of the fit, initialized to infinity.
     """
     def __init__(self, 
                  data: List, 
@@ -20,6 +40,22 @@ class DistFit:
                  method_init_x: str='quantile'
                  ):
         """
+        Initialize the DistFit class with empirical data and parameters for fitting a Bezier random variable.
+
+        Parameters
+        ----------
+        data : List
+            The empirical data to fit the Bezier random variable to.
+        n : int, optional
+            The number of control points minus one for the Bezier curve (default is 5).
+        init_x : np.array, optional
+            Initial control points for the x-coordinates of the Bezier curve (default is None).
+        init_z : np.array, optional
+            Initial control points for the z-coordinates of the Bezier curve (default is None).
+        emp_cdf_data : np.array, optional
+            The empirical cumulative distribution function (CDF) data derived from the empirical data (default is None).
+        method_init_x : str, optional
+            Method to initialize the x-coordinates of the control points (default is 'quantile').
         """
         self.data = np.sort(data)
         self.n = n
