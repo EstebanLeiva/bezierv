@@ -24,6 +24,8 @@ class DistFit:
         Initial control points for the x-coordinates of the Bezier curve.
     init_z : np.array
         Initial control points for the z-coordinates of the Bezier curve.
+    init_t : np.array
+        Initial parameter values.
     emp_cdf_data : np.array
         The empirical cumulative distribution function (CDF) data derived from the empirical data.
     bezierv : Bezierv
@@ -37,7 +39,8 @@ class DistFit:
                  data: List, 
                  n: int=5, 
                  init_x: np.array=None, 
-                 init_z: np.array=None, 
+                 init_z: np.array=None,
+                 init_t: np.array=None,
                  emp_cdf_data: np.array=None, 
                  method_init_x: str='quantile'
                  ):
@@ -70,7 +73,10 @@ class DistFit:
         else:
             self.init_x = init_x
 
-        self.init_t = utils.get_t(self.n, self.m, self.data, self.bezierv, self.init_x)
+        if init_t is None:
+            self.init_t = utils.get_t(self.n, self.m, self.data, self.bezierv, self.init_x)
+        else:
+            self.init_t = init_t
 
         if init_z is None:
             self.init_z = self.get_controls_z()

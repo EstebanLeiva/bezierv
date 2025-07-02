@@ -11,4 +11,5 @@ def data_instance() -> np.array:
     np.array
         A numpy array of sample data points.
     """
+    np.random.seed(111)
     return np.random.normal(loc=0, scale=1, size=1000)

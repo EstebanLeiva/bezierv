@@ -3,7 +3,6 @@ import numpy as np
 from bezierv.classes.bezierv import Bezierv
 from pyomo.opt import SolverFactory, SolverStatus, TerminationCondition
 
-
 def fit(n: int,
         m: int,
         data: np.array,
