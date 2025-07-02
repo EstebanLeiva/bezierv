@@ -19,13 +19,12 @@
 
 ## Why Bézier random variables?  
 Classical parametric distributions can be too rigid; non-parametric methods can be noisy.  
-Bézier curves offer a sweet spot: **smooth**, **compact**, **easily differentiated**, and **shape-controlled**.  
+Bézier curves offer a sweet spot: **smooth** and **shape-controlled**.  
 With **bezierv** you can:
 
 * Fit Bézier CDFs/PDFs to sample data of any shape.
-* Evaluate moments, quantiles, or generate random variates.
-* Compose variables via convolution, transformation, or mixtures.
-* Backpropagate through the fit for automatic differentiation (PyTorch-friendly).
+* Evaluate moments and quantiles.
+* Compose variables via convolution.
 
 ---
 
