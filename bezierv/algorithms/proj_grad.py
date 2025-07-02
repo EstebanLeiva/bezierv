@@ -63,7 +63,7 @@ def project_z(controls_z: np.array):
     return z_prime
 
 def fit(n: int, 
-        m:int, 
+        m: int, 
         data: np.array,
         bezierv: Bezierv,
         init_x: np.array,
@@ -112,6 +112,8 @@ def fit(n: int,
     -------
     Bezierv
         The updated Bezierv instance with fitted control points.
+    float
+        The mean squared error (MSE) of the fit.
     """
     z = init_z
     for i in range(max_iter):

@@ -1,4 +1,4 @@
-from bezierv.algorithms import proj_grad2
+from bezierv.algorithms import proj_grad
 from bezierv.classes import Bezierv, DistFit
 
 def test_projgrad(data_instance):

@@ -458,6 +458,25 @@ class Bezierv:
         self.kurtosis = mu_4 / self.variance**2
         return self.kurtosis
     
+    def check_ordering(self):
+        """
+        Check if the control points are ordered in non-decreasing order.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        bool
+            True if the control points are ordered in non-decreasing order, False otherwise.
+        """
+        if not np.all(np.diff(self.controls_x) >= 0):
+            raise False
+        if not np.all(np.diff(self.controls_z) >= 0):
+            raise False
+        return True
+    
     def plot_cdf(self, data=None, num_points=100, ax=None):
         """
         Plot the cumulative distribution function (CDF) of the Bezier random variable alongside 
