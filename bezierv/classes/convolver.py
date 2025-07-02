@@ -45,7 +45,7 @@ class Convolver:
         self.n = max(bezierv_x.n, bezierv_y.n)
         self.grid = grid
 
-    def cdf_z (self, z: float):
+    def cdf_z (self, z: float) -> float:
         """
         Numerically compute the cumulative distribution function (CDF) at a given z-value for the
         sum of Bezier random variables.
@@ -63,21 +63,21 @@ class Convolver:
         float
             The computed CDF value at z.
         """
-        def integrand(t: float):
+        def integrand(t: float) -> float:
             y_val = z - self.bezierv_x.poly_x(t)
             if y_val < self.bezierv_y.controls_x[0]:
                 cumul_z = 0
             elif y_val > self.bezierv_y.controls_x[-1]:
-                cumul_z = self.bezierv_x.pdf_numerator(t)
+                cumul_z = self.bezierv_x.pdf_numerator_t(t)
             else:
                 y_inv = self.bezierv_y.root_find(y_val)
-                cumul_z = self.bezierv_x.pdf_numerator(t) * self.bezierv_y.eval_t(y_inv)[1]
+                cumul_z = self.bezierv_x.pdf_numerator_t(t) * self.bezierv_y.eval_t(y_inv)[1]
             return cumul_z
 
         result, _ = quad(integrand, 0, 1)
         return self.bezierv_x.n * result
 
-    def conv(self, method='projgrad'):
+    def conv(self, method='projgrad') -> tuple:
         """
         Numerically compute the convolution of two Bezier random variables.
 
@@ -116,11 +116,9 @@ class Convolver:
         if self.bezierv_x.n == self.bezierv_y.n:
             controls_x = self.bezierv_x.controls_x + self.bezierv_y.controls_x
             distfit = DistFit(data, emp_cdf_data=emp_cdf_data, init_x=controls_x, n=self.n)
-            bezierv = distfit.fit(method=method)
-            mse = distfit.mse
+            bezierv, mse = distfit.fit(method=method)
         else:
             distfit = DistFit(data, emp_cdf_data=emp_cdf_data, n=self.n, method_init_x='uniform')
-            bezierv = distfit.fit(method=method)
-            mse = distfit.mse
+            bezierv, mse = distfit.fit(method=method)
 
         return bezierv, mse
