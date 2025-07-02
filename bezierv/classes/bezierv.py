@@ -7,7 +7,9 @@ from scipy.integrate import quad
 from statsmodels.distributions.empirical_distribution import ECDF
 
 class Bezierv:
-    def __init__(self, n: int, controls_x=None, controls_z=None):
+    def __init__(self, n: int, 
+                 controls_x=None, 
+                 controls_z=None):
         """
         Initialize a Bezierv instance representing a Bezier random variable.
 
@@ -24,11 +26,6 @@ class Bezierv:
             The x-coordinates of the control points (length n+1). If None, a zero array is created.
         controls_z : array-like, optional
             The z-coordinates of the control points (length n+1). If None, a zero array is created.
-
-        Raises
-        ------
-        ValueError
-            If only one of controls_x or controls_z is provided.
 
         Attributes
         ----------
@@ -49,13 +46,13 @@ class Bezierv:
         controls_z : np.array
             z-coordinates of the control points.
         mean : float
-            The mean of the curve (initialized as NaN).
+            The mean of the curve (initialized as np.inf).
         var : float
-            The variance of the curve (initialized as NaN).
+            The variance of the curve (initialized as np.inf).
         skew : float
-            The skewness of the curve (initialized as NaN).
+            The skewness of the curve (initialized as np.inf).
         kurt : float
-            The kurtosis of the curve (initialized as NaN).
+            The kurtosis of the curve (initialized as np.inf).
         """
         self.n = n
         self.deltas_x = np.zeros(n)
@@ -73,16 +70,18 @@ class Bezierv:
         else:
             raise ValueError('Either all or none of the parameters controls_x and controls_y must be provided')
 
-        # moments
-        self.mean = math.nan
-        self.variance = math.nan
-        self.skewness = math.nan
-        self.kurtosis = math.nan
+        self.mean = np.inf
+        self.variance = np.inf
+        self.skewness = np.inf
+        self.kurtosis = np.inf
 
-        # initialize
         self.combinations()
+        self.deltas()
 
-    def update_bezierv(self, controls_x, controls_z, bounds):
+    def update_bezierv(self, 
+                       controls_x: np.array, 
+                       controls_z: np.array, 
+                       bounds: tuple):
         """
         Update the control points for the Bezier curve, bounds and recalculate deltas.
 
@@ -92,6 +91,8 @@ class Bezierv:
             The new x-coordinates of the control points.
         controls_z : array-like
             The new z-coordinates of the control points.
+        bounds : tuple
+            The new bounds for the Bezier random variable, typically a tuple (min, max).
 
         Returns
         -------
@@ -105,13 +106,6 @@ class Bezierv:
     def combinations(self):
         """
         Compute and store binomial coefficients.
-
-        This method computes two sets of binomial coefficients:
-        
-        - For each integer i in the range [0, self.n] (inclusive), it calculates
-        "self.n choose i" using math.comb and assigns the result to self.comb[i].
-        - For each integer i in the range [0, self.n - 1], it calculates
-        "(self.n - 1) choose i" and assigns the result to self.comb_minus[i].
 
         Parameters
         ----------
@@ -130,9 +124,6 @@ class Bezierv:
     def deltas(self):
         """
         Compute the differences between consecutive control points.
-
-        This method updates the attributes `deltas_x` and `deltas_z` by computing the difference
-        between successive control points in `controls_x` and `controls_z`, respectively.
 
         Parameters
         ----------
@@ -173,14 +164,11 @@ class Bezierv:
         """
         Evaluate the x-coordinate at a given t value.
 
-        This method computes the weighted sum of the x control points using Bernstein basis
-        polynomials. If `controls_x` is not provided, the instance's control points are used.
-
         Parameters
         ----------
         t : float
             The parameter value at which to evaluate (in [0, 1]).
-        controls_x : array-like, optional
+        controls_x : np.array, optional
             An array of control points for the x-coordinate. Defaults to self.controls_x.
 
         Returns
@@ -199,9 +187,6 @@ class Bezierv:
     def poly_z(self, t, controls_z = None):
         """
         Evaluate the z-coordinate at a given t value.
-
-        This method computes the weighted sum of the z control points using Bernstein basis
-        polynomials. If `controls_z` is not provided, the instance's control points are used.
 
         Parameters
         ----------
@@ -254,9 +239,6 @@ class Bezierv:
         """
         Evaluate the CDF of the Bezier random variable at a given parameter value t.
 
-        This method computes both the x and z coordinates of the Bezier curve at parameter t
-        using the Bernstein basis polynomials and the current control points.
-
         Parameters
         ----------
         t : float
@@ -279,9 +261,6 @@ class Bezierv:
         """
         Evaluate the CDF of the Bezier random variable at a given x-coordinate.
 
-        This method first finds the corresponding parameter value t such that the Bezier curve's x-coordinate
-        is equal to the given x, and then evaluates the curve at that parameter.
-
         Parameters
         ----------
         x : float
@@ -298,9 +277,6 @@ class Bezierv:
     def cdf_x(self, x):
         """
         Compute the cumulative distribution function (CDF) at a given x-coordinate.
-
-        This method evaluates the CDF of the Bezier random variable at the specified x-coordinate
-        by finding the corresponding parameter t and then computing the z-coordinate at that t.
 
         Parameters
         ----------
@@ -319,12 +295,9 @@ class Bezierv:
         _, p_z = self.eval_x(x)
         return p_z
 
-    def get_quantile(self, alpha, method='brentq'):
+    def quantile(self, alpha, method='brentq'):
         """
         Compute the quantile function (inverse CDF) for a given probability level alpha.
-
-        This method finds the value of t such that the cumulative distribution function (CDF) at t equals alpha,
-        and then evaluates the x-coordinate at that t.
 
         Parameters
         ----------
@@ -371,9 +344,6 @@ class Bezierv:
         """
         Compute the probability density function (PDF) of the Bezier random variable at a given x.
 
-        This method finds the corresponding parameter t for the x-coordinate using `root_find`, and then
-        computes the PDF with respect to t.
-
         Parameters
         ----------
         x : float
@@ -387,7 +357,7 @@ class Bezierv:
         t = self.root_find(x)
         return self.pdf_t(t)
     
-    def pdf_numerator(self, t):
+    def pdf_numerator_t(self, t):
         """
         Compute the numerator part of the PDF for the Bezier random variable with respect to t.
 
@@ -406,12 +376,47 @@ class Bezierv:
             pdf_num_z += self.bernstein(t, i, self.comb_minus, self.n - 1) * self.deltas_z[i]
         return pdf_num_z
 
-    def get_mean(self):
+    def get_mean(self, closed_form: bool=True):
         """
         Compute and return the mean of the distribution.
 
-        This method calculates the mean by integrating x * pdf(x) over the interval
-        defined by self.bounds. The integration is performed using the quad function.
+        Parameters
+        ----------
+        closed_form : bool, optional
+            If True, use a closed-form solution for the mean. If False, compute it numerically (default is True).
+
+        Returns
+        -------
+        float
+            The mean value of the distribution.
+        """
+        if self.mean == np.inf:
+            if closed_form:
+                total = 0.0
+                for ell in range(self.n + 1):
+                    inner_sum = 0.0
+                    for i in range(self.n):
+                        denom = math.comb(2 * self.n - 1, ell + i)
+                        inner_sum += (self.comb_minus[i] / denom) * self.deltas_z[i]
+                    total += self.comb[ell] * self.controls_x[ell] * inner_sum
+                self.mean = 0.5 * total
+            else:
+                a, b = self.bounds
+                self.mean, _ = quad(lambda x: x * self.pdf_x(x), a, b) 
+        return self.mean
+
+    def get_variance(self):
+        a, b = self.bounds
+        E_x2, _ = quad(lambda x: (x)**2 * self.pdf_x(x), a, b)
+        if self.mean == np.inf:
+            self.variance = E_x2 - self.get_mean()**2
+        else:
+            self.variance = E_x2 - self.mean**2
+        return self.variance
+    
+    def check_ordering(self):
+        """
+        Check if the control points are ordered in non-decreasing order.
 
         Parameters
         ----------
@@ -419,52 +424,19 @@ class Bezierv:
 
         Returns
         -------
-        float
-            The mean value of the distribution.
+        bool
+            True if the control points are ordered in non-decreasing order, False otherwise.
         """
-        a, b = self.bounds
-        self.mean, _ = quad(lambda x: x * self.pdf_x(x), a, b)
-        return self.mean
-
-    def get_variance(self):
-        #TODO: check, it is not giving correct values
-        a, b = self.bounds
-        E_x2, _ = quad(lambda x: x**2 * self.pdf_x(x), a, b)
-        if self.mean == math.nan:
-            self.variance = E_x2 - self.mean()**2
-        else:
-            self.variance = E_x2 - self.mean**2
-        return self.variance
-
-    def get_skewness(self):
-        #TODO: check, it is not giving correct values
-        a, b = self.bounds
-        if self.mean == math.nan:
-            self.mean()
-        if self.variance == math.nan:
-            self.variance()
-        mu_3, _ = quad(lambda x: (x - self.mean)**3 * self.pdf_x(x), a, b)
-        self.skewness = mu_3 / self.variance**(3/2)
-        return self.skewness
-
-    def get_kurtosis(self):
-        #TODO: check, it is not giving correct values
-        a, b = self.bounds
-        if self.mean == math.nan:
-            self.mean()
-        if self.variance == math.nan:
-            self.variance()
-        mu_4, _ = quad(lambda x: (x - self.mean)**4 * self.pdf_x(x), a, b)
-        self.kurtosis = mu_4 / self.variance**2
-        return self.kurtosis
+        if not np.all(np.diff(self.controls_x) >= 0):
+            raise False
+        if not np.all(np.diff(self.controls_z) >= 0):
+            raise False
+        return True
     
     def plot_cdf(self, data=None, num_points=100, ax=None):
         """
         Plot the cumulative distribution function (CDF) of the Bezier random variable alongside 
         the empirical CDF (if data is provided).
-
-        If no data is provided, a linspace is generated based on the minimum and maximum of the 
-        control points in the x-direction.
 
         Parameters
         ----------
@@ -472,6 +444,8 @@ class Bezierv:
             The data points at which to evaluate and plot the CDF. If None, a linspace is used.
         num_points : int, optional
             The number of points to use in the linspace when data is not provided (default is 100).
+        ax : matplotlib.axes.Axes, optional
+            The axes on which to plot the CDF. If None, the current axes are used.
 
         Returns
         -------
@@ -505,15 +479,14 @@ class Bezierv:
         """
         Plot the probability density function (PDF) of the Bezier random variable.
 
-        If no data is provided, a linspace is generated based on the minimum and maximum of the 
-        control points in the x-direction.
-
         Parameters
         ----------
         data : array-like, optional
             The data points at which to evaluate and plot the PDF. If None, a linspace is used.
         num_points : int, optional
             The number of points to use in the linspace when data is not provided (default is 100).
+        ax : matplotlib.axes.Axes, optional
+            The axes on which to plot the PDF. If None, the current axes are used.
 
         Returns
         -------

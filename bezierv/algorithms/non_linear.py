@@ -3,22 +3,45 @@ import numpy as np
 from bezierv.classes.bezierv import Bezierv
 from pyomo.opt import SolverFactory, SolverStatus, TerminationCondition
 
-
-def fit(distfit:DistFit, solver: str='ipopt') -> Bezierv:
+def fit(n: int,
+        m: int,
+        data: np.array,
+        bezierv: Bezierv,
+        init_x: np.array,
+        init_z: np.array,
+        init_t: np.array,
+        emp_cdf_data: np.array,
+        solver: str) -> Bezierv:
         """
-        Fits a Bézier distribution to the given data using n control points.
-        This method sorts the input data, computes the empirical cumulative 
-        distribution function (CDF), and sets up an optimization model to 
-        fit a Bézier distribution. The control points and the empirical CDF 
-        are automatically saved. The method returns the mean square error (MSE) 
-        of the fit.
+        Fit a Bézier random variable to the empirical CDF data using a nonlinear optimization solver.
         
-        Parameters:
-        distfit (DistFit): An instance of the DistFit class containing the data and initial parameters.
-        solver (str): The name of the solver to use for optimization. Default is 'ipopt'.
+        Parameters
+        ----------
+        n : int
+          The number of control points minus one for the Bezier curve.
+        m : int
+          The number of empirical CDF data points.
+        data : np.array
+          The sorted data points used to fit the Bézier distribution.
+        bezierv : Bezierv
+          An instance of the Bezierv class representing the Bézier random variable.
+        init_x : np.array
+          Initial guess for the x-coordinates of the control points.
+        init_z : np.array
+          Initial guess for the z-coordinates of the control points.
+        init_t : np.array
+          Initial guess for the Bézier 'time' parameters corresponding to the data points.
+        emp_cdf_data : np.array
+          The empirical CDF data points used for fitting.
+        solver : str, optional
+          The name of the solver to use for optimization.
 
-        Returns:
-        float: The mean squared error (MSE) of the fit.
+        Returns
+        -------
+        Bezierv
+            The fitted Bezierv object with updated control points.
+        float
+            The mean squared error (MSE) of the fit.
 
         Raises:
         Exception: If the solver fails to find an optimal solution.
@@ -35,30 +58,30 @@ def fit(distfit:DistFit, solver: str='ipopt') -> Bezierv:
         model = pyo.ConcreteModel()
 
         # Sets
-        model.N = pyo.Set(initialize=list(range(distfit.n + 1))) # N = 0,...,i,...,n
-        model.N_n = pyo.Set(initialize=list(range(distfit.n))) # N = 0,...,i,...,n-1
-        model.M = pyo.Set(initialize=list(range(1, distfit.m + 1))) # M = 1,...,j,...,m
-        model.M_m = pyo.Set(initialize=list(range(1, distfit.m))) # M = 1,...,j,...,m-1
+        model.N = pyo.Set(initialize=list(range(n + 1))) # N = 0,...,i,...,n
+        model.N_n = pyo.Set(initialize=list(range(n))) # N = 0,...,i,...,n-1
+        model.M = pyo.Set(initialize=list(range(1, m + 1))) # M = 1,...,j,...,m
+        model.M_m = pyo.Set(initialize=list(range(1, m))) # M = 1,...,j,...,m-1
 
         # Decision variables
         # Control points. Box constraints.
-        X_min = distfit.data[0];
-        X_max = distfit.data[-1];
+        X_min = data[0];
+        X_max = data[-1];
         # var x{i in 0..n} >=X[1], <=X[m];
-        # Initialization: let {i in 1..n-1} x[i] := quantile(i/n);
+        # Initialization:
         def init_x_rule(model, i):
-          return np.quantile(distfit.data, i / distfit.n)
+          return float(init_x[i])
         model.x = pyo.Var(model.N, within=pyo.Reals, bounds=(X_min, X_max), initialize=init_x_rule) 
         # var z{i in 0..n} >=0, <=1;
-        # Initialization: let {i in 1..n-1} z[i] := i*(1/n);
+        # Initialization:
         def init_z_rule(model, i):
-          return i*(1 / distfit.n)
+          return float(init_z[i])
         model.z = pyo.Var(model.N, within=pyo.NonNegativeReals, bounds=(0, 1), initialize=init_z_rule) 
         # Bezier 'time' parameter t for the j-th sample point.
         # var t{j in 1..m} >=0, <= 1;
-        # Initialization: let {j in 2..m-1} t[j] := j*(1/m);        
+        # Initialization:  
         def init_t_rule(model, j):
-          return j*(1 / distfit.m)
+          return float(init_t[j - 1])  # j starts from 1, so we access init_t with j-1
         model.t = pyo.Var(model.M, within=pyo.NonNegativeReals, bounds=(0,1), initialize=init_t_rule )         
         # Estimated cdf for the j-th sample point.
         # var F_hat{j in 1..m} >=0, <= 1;
@@ -68,20 +91,20 @@ def fit(distfit:DistFit, solver: str='ipopt') -> Bezierv:
         # minimize mean_square_error:
         #    1/m * sum {j in 1..m} ( ( j/m - F_hat[j] )^2);
         def mse_rule(model):
-          return (1 / distfit.m) * sum(((j / distfit.m) - model.F_hat[j])**2 for j in model.M)
+          return (1 / m) * sum((emp_cdf_data[j - 1] - model.F_hat[j])**2 for j in model.M)
         model.mse = pyo.Objective(rule=mse_rule, sense=pyo.minimize )
 
         # Constraints
         # subject to F_hat_estimates {j in 1..m}:
         #    sum{i in 0..n}( comb[i]*t[j]^i*(1-t[j])^(n-i)*z[i] ) = F_hat[j];
         def F_hat_rule(model, j):
-          return sum(distfit.bezierv.comb[i] * model.t[j]**i * (1 - model.t[j])**(distfit.n - i) * model.z[i] for i in model.N ) == model.F_hat[j]
+          return sum(bezierv.comb[i] * model.t[j]**i * (1 - model.t[j])**(n - i) * model.z[i] for i in model.N ) == model.F_hat[j]
         model.ctr_F_hat = pyo.Constraint(model.M , rule=F_hat_rule)
 
         # subject to data_sample {j in 1..m}:
         #    sum{i in 0..n}( comb[i]*t[j]^i*(1-t[j])^(n-i)*x[i] ) = X[j];
         def data_sample_rule(model, j):
-          return sum(distfit.bezierv.comb[i] * model.t[j]**i * (1 - model.t[j])**(distfit.n - i) * model.x[i] for i in model.N ) == distfit.data[j-1]
+          return sum(bezierv.comb[i] * model.t[j]**i * (1 - model.t[j])**(n - i) * model.x[i] for i in model.N ) == data[j-1]
         model.ctr_sample = pyo.Constraint(model.M , rule=data_sample_rule)
         
         # subject to convexity_x {i in 0..n-1}:
@@ -98,24 +121,24 @@ def fit(distfit:DistFit, solver: str='ipopt') -> Bezierv:
 
         # subject to first_control_x:
         #    x[0] = X[1];
-        model.first_control_x = pyo.Constraint(expr=model.x[0] <= distfit.data[0])
+        model.first_control_x = pyo.Constraint(expr=model.x[0] <= data[0])
         # subject to first_control_z:
         #    z[0] = 0;
         model.first_control_z = pyo.Constraint(expr=model.z[0] == 0)
 
         # subject to last_control_x:
         #    x[n] = X[m];
-        model.last_control_x = pyo.Constraint(expr=model.x[distfit.n] >= distfit.data[-1]) 
+        model.last_control_x = pyo.Constraint(expr=model.x[n] >= data[-1]) 
         # subject to last_control_z:
         #    z[n] = 1;
-        model.last_control_z = pyo.Constraint(expr=model.z[distfit.n] == 1)
+        model.last_control_z = pyo.Constraint(expr=model.z[n] == 1)
         
         # subject to first_data_t:
         #    t[1] = 0;
         model.first_t = pyo.Constraint(expr=model.t[1] == 0)
         # subject to last_data_t:
         #    t[m] = 1;
-        model.last_t = pyo.Constraint(expr=model.t[distfit.m] == 1)
+        model.last_t = pyo.Constraint(expr=model.t[m] == 1)
  
         # Set solver
         pyo_solver = SolverFactory(solver)
@@ -125,9 +148,9 @@ def fit(distfit:DistFit, solver: str='ipopt') -> Bezierv:
             if (results.solver.status == SolverStatus.ok) and (results.solver.termination_condition == TerminationCondition.optimal):
                 controls_x = np.array([model.x[i]() for i in model.N])
                 controls_z = np.array([model.z[i]() for i in model.N])
-                distfit.mse = model.mse()
-                distfit.bezierv.update_bezierv(controls_x, controls_z, (distfit.data[0], distfit.data[-1]))
+                mse = model.mse()
+                bezierv.update_bezierv(controls_x, controls_z, (data[0], data[-1]))
         except Exception as e:
             print("NonLinearSolver [fit]: An exception occurred during model evaluation:", e)
 
-        return distfit.bezierv
+        return bezierv, mse

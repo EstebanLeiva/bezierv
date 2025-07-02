@@ -1,25 +1,66 @@
 import numpy as np
+import copy
 from bezierv.classes.bezierv import Bezierv
 from typing import List
 from statsmodels.distributions.empirical_distribution import ECDF
-from scipy.optimize import brentq
-from bezierv.algorithms import proj_grad2 as pj
-#from bezierv.algorithms import non_linear2 as nl
-#from bezierv.algorithms import nelder_mead2 as alg
+from bezierv.algorithms import proj_grad as pg
+from bezierv.algorithms import non_linear as nl
+from bezierv.algorithms import nelder_mead as nm
+from bezierv.algorithms import proj_subgrad as ps
+from bezierv.algorithms import utils as utils
 
 
 class DistFit:
     """
+    A class to fit a Bezier random variable to empirical data.
+
+    Attributes
+    ----------
+    data : List
+        The empirical data to fit the Bezier random variable to.
+    n : int
+        The number of control points minus one for the Bezier curve.
+    init_x : np.array
+        Initial control points for the x-coordinates of the Bezier curve.
+    init_z : np.array
+        Initial control points for the z-coordinates of the Bezier curve.
+    init_t : np.array
+        Initial parameter values.
+    emp_cdf_data : np.array
+        The empirical cumulative distribution function (CDF) data derived from the empirical data.
+    bezierv : Bezierv
+        An instance of the Bezierv class representing the Bezier random variable.
+    m : int
+        The number of empirical data points.
+    mse : float
+        The mean squared error of the fit, initialized to infinity.
     """
     def __init__(self, 
                  data: List, 
                  n: int=5, 
                  init_x: np.array=None, 
-                 init_z: np.array=None, 
+                 init_z: np.array=None,
+                 init_t: np.array=None,
                  emp_cdf_data: np.array=None, 
                  method_init_x: str='quantile'
                  ):
         """
+        Initialize the DistFit class with empirical data and parameters for fitting a Bezier random variable.
+
+        Parameters
+        ----------
+        data : List
+            The empirical data to fit the Bezier random variable to.
+        n : int, optional
+            The number of control points minus one for the Bezier curve (default is 5).
+        init_x : np.array, optional
+            Initial control points for the x-coordinates of the Bezier curve (default is None).
+        init_z : np.array, optional
+            Initial control points for the z-coordinates of the Bezier curve (default is None).
+        emp_cdf_data : np.array, optional
+            The empirical cumulative distribution function (CDF) data derived from the empirical data (default is None).
+        method_init_x : str, optional
+            Method to initialize the x-coordinates of the control points (default is 'quantile').
         """
         self.data = np.sort(data)
         self.n = n
@@ -32,7 +73,10 @@ class DistFit:
         else:
             self.init_x = init_x
 
-        self.init_t = self.get_t(self.init_x, self.data)
+        if init_t is None:
+            self.init_t = utils.get_t(self.n, self.m, self.data, self.bezierv, self.init_x)
+        else:
+            self.init_t = init_t
 
         if init_z is None:
             self.init_z = self.get_controls_z()
@@ -50,28 +94,34 @@ class DistFit:
             step_size_PG: float=0.001,
             max_iter_PG: float=1000,
             threshold_PG: float=1e-3,
-            solver_NL: str='ipopt',
-            step_size_NM=0.1,
-            no_improve_thr_NM=10e-6,
-            no_improv_break_NM=10, 
-            max_iter_NM=0,
-            alpha_NM=1., 
-            gamma_NM=2., 
-            rho_NM=-0.5, 
-            sigma_NM=0.5) -> Bezierv:
+            step_size_x_PS: float=0.001,
+            step_size_z_PS: float=0.001,
+            max_iter_PS: int=1000,
+            solver_NL: str='ipopt') -> Bezierv:
         """
-        Fit the specified distribution to the data.
+        Fit the bezierv distribution to the data.
 
-        This method uses the specified fitting method (e.g., 'projgrad') to fit the Bezier random variable
-        to the empirical CDF data.
-
+        Parameters
+        ----------
+        method : str, optional
+            The fitting method to use. Options are 'projgrad', 'nonlinear', or 'neldermead'.
+            Default is 'projgrad'.
+        step_size_PG : float, optional
+            The step size for the projected gradient descent method (default is 0.001).
+        max_iter_PG : int, optional
+            The maximum number of iterations for the projected gradient descent method (default is 1000).
+        threshold_PG : float, optional
+            The convergence threshold for the projected gradient descent method (default is 1e-3).
+        solver_NL : str, optional
+            The solver to use for the nonlinear fitting method (default is 'ipopt').
+        
         Returns
         -------
         Bezierv
             The fitted Bezierv instance with updated control points.
         """
         if method == 'projgrad':
-            self.bezierv, self.mse = pj.fit(self.n, 
+            self.bezierv, self.mse = pg.fit(self.n, 
                                             self.m, 
                                             self.data, 
                                             self.bezierv, 
@@ -83,11 +133,39 @@ class DistFit:
                                             max_iter_PG, 
                                             threshold_PG)
         elif method == 'nonlinear':
-            None
+            self.bezierv, self.mse = nl.fit(self.n,
+                                            self.m,
+                                            self.data,
+                                            self.bezierv,
+                                            self.init_x,
+                                            self.init_z,
+                                            self.init_t,
+                                            self.emp_cdf_data,
+                                            solver_NL)
         elif method == 'neldermead':
-            None
+            self.bezierv, self.mse = nm.fit(self.n,
+                                            self.m,
+                                            self.data,
+                                            self.bezierv,
+                                            self.init_x,
+                                            self.init_z,
+                                            self.emp_cdf_data)
+        elif method == 'projsubgrad':
+            self.bezierv, self.mse = ps.fit(self.n,
+                                            self.m,
+                                            self.data,
+                                            self.bezierv,
+                                            self.init_x,
+                                            self.init_z,
+                                            self.init_t,
+                                            self.emp_cdf_data,
+                                            step_size_x_PS,
+                                            step_size_z_PS,
+                                            max_iter_PS)
+        else:
+            raise ValueError("Method not recognized. Use 'projgrad', 'nonlinear', or 'neldermead'.")
 
-        return self.bezierv
+        return copy.copy(self.bezierv), copy.copy(self.mse)
     
     def get_controls_z(self) -> np.array:
         """
@@ -124,63 +202,12 @@ class DistFit:
         np.array
             The control points for the x-coordinates of the Bezier curve.
         """
-        controls_x = np.zeros(self.n + 1)
         if method == 'quantile':
+            controls_x = np.zeros(self.n + 1)
             for i in range(self.n + 1):
                 controls_x[i] = np.quantile(self.data, i/self.n)
+        elif method == 'uniform':
+            controls_x = np.linspace(np.min(self.data), np.max(self.data), self.n + 1)
         else:
-            raise ValueError("Method not recognized. Use 'quantile'.")
+            raise ValueError("Method not recognized. Use 'quantile' or 'uniform'.")
         return controls_x
-    
-    def root_find(self, controls_x: np.array, data_point:float) -> float:
-        """
-        Find the parameter value t such that the Bezier random variable's x-coordinate equals data_i.
-
-        This method defines a function representing the difference between the x-coordinate
-        of the Bezier curve and the given data point. It then uses Brent's method to find a 
-        root of this function, i.e., a value t in [0, 1] that satisfies the equality.
-
-        Parameters
-        ----------
-        controls_x : np.array
-            The control points for the x-coordinates of the Bezier curve.
-        data_point : float
-            A single data point for which to find the corresponding parameter value.
-
-        Returns
-        -------
-        float
-            The value of t in the interval [0, 1] such that the Bezier random variable's x-coordinate
-            is approximately equal to data_point.
-        """
-        def poly_x_sample(t, controls_x, data_point):
-            p_x = 0
-            for i in range(self.n + 1):
-                p_x += self.bezierv.bernstein(t, i, self.bezierv.comb, self.bezierv.n) * controls_x[i]
-            return p_x - data_point
-        t = brentq(poly_x_sample, 0, 1, args=(controls_x, data_point))
-        return t
-    
-    def get_t(self, controls_x, data) -> np.array:
-        """
-        Compute values of the parameter t for each data point using root-finding.
-
-        For each sorted data point, this method finds the corresponding value 't' such that the 
-        x-coordinate of the Bezier random variable matches the data point. 
-
-        Parameters
-        ----------
-        controls_x : np.array
-            The control points for the x-coordinates of the Bezier curve.
-        data : np.array
-            Array of data points for which to compute the corresponding values of t.
-
-        Returns
-        -------
-        np.array
-            An array of values of t corresponding to each data point.
-        """
-        t = np.zeros(self.m)
-        for i in range(self.m):
-            t[i] = self.root_find(controls_x, data[i])
-        return t
