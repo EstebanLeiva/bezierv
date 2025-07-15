@@ -77,7 +77,16 @@ class Convolver:
         result, _ = quad(integrand, 0, 1)
         return self.bezierv_x.n * result
 
-    def conv(self, method='projgrad') -> tuple:
+    def conv(self, 
+             method='projgrad',
+             step_size_PG: float=0.001,
+             max_iter_PG: float=1000,
+             threshold_PG: float=1e-3,
+             step_size_PS: float=0.001,
+             max_iter_PS: int=1000,
+             solver_NL: str='ipopt',
+             max_iter_NM: int=1000 
+             ) -> tuple:
         """
         Numerically compute the convolution of two Bezier random variables.
 

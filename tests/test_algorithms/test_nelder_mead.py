@@ -46,7 +46,8 @@ def test_fit_returns_low_mse_and_updates_bezier():
         bezierv=bez,
         init_x=init_x,
         init_z=init_z,
-        emp_cdf_data=emp_cdf
+        emp_cdf_data=emp_cdf,
+        max_iter=1000
         )
 
     assert mse < 1e-5, "Expected near-perfect fit with dummy minimise"

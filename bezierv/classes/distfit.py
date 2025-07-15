@@ -94,10 +94,10 @@ class DistFit:
             step_size_PG: float=0.001,
             max_iter_PG: float=1000,
             threshold_PG: float=1e-3,
-            step_size_x_PS: float=0.001,
-            step_size_z_PS: float=0.001,
+            step_size_PS: float=0.001,
             max_iter_PS: int=1000,
-            solver_NL: str='ipopt') -> Bezierv:
+            solver_NL: str='ipopt',
+            max_iter_NM: int=1000) -> Bezierv:
         """
         Fit the bezierv distribution to the data.
 
@@ -149,7 +149,8 @@ class DistFit:
                                             self.bezierv,
                                             self.init_x,
                                             self.init_z,
-                                            self.emp_cdf_data)
+                                            self.emp_cdf_data,
+                                            max_iter_NM)
         elif method == 'projsubgrad':
             self.bezierv, self.mse = ps.fit(self.n,
                                             self.m,
@@ -159,8 +160,7 @@ class DistFit:
                                             self.init_z,
                                             self.init_t,
                                             self.emp_cdf_data,
-                                            step_size_x_PS,
-                                            step_size_z_PS,
+                                            step_size_PS,
                                             max_iter_PS)
         else:
             raise ValueError("Method not recognized. Use 'projgrad', 'nonlinear', or 'neldermead'.")

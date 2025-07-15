@@ -33,7 +33,7 @@ def test_cdf_and_quantile(linear_bezierv):
     x = 0.42
     assert bz.cdf_x(x) == pytest.approx(x)
     alpha = 0.77
-    assert bz.quantile(alpha) == pytest.approx(alpha)
+    assert bz.get_quantile(alpha) == pytest.approx(alpha)
 
 
 def test_pdf_uniform(linear_bezierv):

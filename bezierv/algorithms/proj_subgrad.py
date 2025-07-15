@@ -136,9 +136,8 @@ def fit(n: int,
         init_z: np.array,
         init_t: float,
         emp_cdf_data: np.array, 
-        step_size_x: float,
-        step_size_z: float,
-        max_iter: int,):
+        step_size: float,
+        max_iter: int):
     """
     Fit the Bezier random variable to the empirical CDF data using projected gradient descent.
 
@@ -151,12 +150,26 @@ def fit(n: int,
 
     Parameters
     ----------
-    controls_z0 : np.array
-        The initial guess for the z control points.
-    step : float, optional
-        The step size (learning rate) for the gradient descent updates (default is 0.01).
-    maxiter : int, optional
-        The maximum number of iterations allowed for the fitting process (default is 1000).
+    n : int
+        The number of control points minus one.
+    m : int
+        The number of empirical CDF data points.
+    data : np.array
+        The empirical data to fit the Bezier random variable to.
+    bezierv : Bezierv
+        An instance of the Bezierv class representing the Bezier random variable.
+    init_x : np.array
+        Initial control points for the x-coordinates of the Bezier curve.
+    init_z : np.array
+        Initial control points for the z-coordinates of the Bezier curve.
+    init_t : float
+        Initial parameter values corresponding to the data points.
+    emp_cdf_data : np.array
+        The empirical cumulative distribution function (CDF) data derived from the empirical data.
+    step_size : float
+        The step size for the subgradient method updates.
+    max_iter : int
+        The maximum number of iterations to perform.
 
     Returns
     -------
@@ -172,9 +185,9 @@ def fit(n: int,
     z = init_z
     t = init_t
     for i in range(max_iter):
-        subgrad_x, grad_z = subgrad(n, m, bezierv, t, z, emp_cdf_data)
-        z_prime = project_z(z - step_size_z * grad_z)
-        x_prime = project_x(data, x - step_size_x * subgrad_x)
+        subgrad_x, grad_z = subgrad(n, m, bezierv, t, z, emp_cdf_data) 
+        z_prime = project_z(z - step_size * grad_z)
+        x_prime = project_x(data, x - step_size * subgrad_x)
         t_prime = utils.get_t(n, m, data, bezierv, x_prime)
         mse_prime = objective_function(m, bezierv, emp_cdf_data, z_prime, t_prime)
         if mse_prime < f_best:
@@ -184,7 +197,7 @@ def fit(n: int,
         x = x_prime
         z = z_prime
         t = t_prime
-
+        
     bezierv.update_bezierv(x_best, z_best, (data[0], data[-1]))
 
     return bezierv, f_best

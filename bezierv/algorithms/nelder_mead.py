@@ -113,6 +113,7 @@ def fit(n: int,
         init_x: np.array,
         init_z: np.array,
         emp_cdf_data: np.array,
+        max_iter: int
         ) -> Bezierv:
     """
     Fit the Bezier random variable to the empirical CDF data using the Nelder-Mead optimization algorithm.
@@ -146,7 +147,8 @@ def fit(n: int,
         fun=objective_function_lagrangian,
         args=(n, m, data, bezierv, emp_cdf_data),
         x0=start,
-        method='Nelder-Mead')
+        method='Nelder-Mead',
+        options={'maxiter': max_iter, 'disp': False})
     sol = result.x
     controls_x = sol[0 : n + 1]
     controls_z = sol[n + 1: ]

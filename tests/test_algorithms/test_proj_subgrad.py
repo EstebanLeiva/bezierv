@@ -54,9 +54,8 @@ def test_fit_converges_to_linear_solution():
         init_z=init_z,
         init_t=t_init,
         emp_cdf_data=emp_cdf,
-        step_size_x=0.5,
-        step_size_z=0.5,
-        max_iter=200,
+        step_size=0.5,
+        max_iter=200
     )
 
     assert mse < 1e-6, "Expected near-perfect fit"

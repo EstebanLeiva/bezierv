@@ -295,7 +295,7 @@ class Bezierv:
         _, p_z = self.eval_x(x)
         return p_z
 
-    def quantile(self, alpha, method='brentq'):
+    def get_quantile(self, alpha, method='brentq'):
         """
         Compute the quantile function (inverse CDF) for a given probability level alpha.
 
