@@ -4,9 +4,9 @@ from bezierv.classes.distfit import DistFit
 from bezierv.classes.bezierv import Bezierv
 
 class Convolver:
-    def __init__(self, bezierv_x: Bezierv, bezierv_y: Bezierv, grid: int=100):
+    def __init__(self, list_bezierv: list[Bezierv]):
         """
-        Initialize a ConvBezier instance for convolving two Bezier curves.
+        Initialize a ConvBezier instance for convolving Bezier curves.
 
         This constructor sets up the convolution object by storing the provided Bezierv
         random variables, and creates a new Bezierv instance to hold the convolution 
@@ -15,119 +15,51 @@ class Convolver:
 
         Parameters
         ----------
-        bezierv_x : Bezierv
-            A Bezierv instance representing the first Bezier random variable.
-        bezierv_y : Bezierv
-            A Bezierv instance representing the second Bezier random variable.
-        grid : int
-            The number of data points to generate for the convolution (more data points
-            induce a better approximation).
-
-        Attributes
-        ----------
-        bezierv_x : Bezierv
-            The Bezierv instance representing the first random variable. Control points must be in non-decreasing order.
-        bezierv_y : Bezierv
-            The Bezierv instance representing the second random variable. Control points must be in non-decreasing order.
-        bezierv_conv : Bezierv
-            A Bezierv instance that will store the convolution result. Its number of control
-            points is set to the maximum of control points between bezierv_x and bezierv_y.
-        m : int
-            The number of data points used in the convolution.
+        list_bezierv : list[Bezierv]
+            A list of Bezierv instances representing the Bezier random variables to be convolved.
         """
-        if bezierv_x.check_ordering() is False:
-            raise ValueError("bezierv_x controls are not in non-decreasing order.")
-        if bezierv_y.check_ordering() is False:
-            raise ValueError("bezierv_y controls are not in non-decreasing order.")
-        
-        self.bezierv_x = bezierv_x
-        self.bezierv_y = bezierv_y
-        self.n = max(bezierv_x.n, bezierv_y.n)
-        self.grid = grid
+        self.list_bezierv = list_bezierv
 
-    def cdf_z (self, z: float) -> float:
+    
+    def convolve(self,
+                 n_sims: int = 1000,
+                 rng=42,
+                 **kwargs) -> Bezierv:
         """
-        Numerically compute the cumulative distribution function (CDF) at a given z-value for the
-        sum of Bezier random variables.
-
-        This method evaluates the CDF at the specified value z by integrating over the
-        parameter t of the sum of Bezier random variables.
+        Convolve the Bezier RVs via Monte Carlo and fit a Bezierv to the sum.
 
         Parameters
         ----------
-        z : float
-            The value at which to evaluate the cumulative distribution function.
-
-        Returns
-        -------
-        float
-            The computed CDF value at z.
+        n_sims : int
+            Number of Monte Carlo samples.
+        rng : int or numpy.random.Generator
+            Seed or RNG for reproducibility (passed to each Bezierv.random).
+        **kwargs :
+            Init options for DistFit(...):
+                n, init_x, init_z, init_t, emp_cdf_data, method_init_x
+            Fit options for DistFit.fit(...):
+                method, step_size_PG, max_iter_PG, threshold_PG,
+                step_size_PS, max_iter_PS, solver_NL, max_iter_NM
         """
-        def integrand(t: float) -> float:
-            y_val = z - self.bezierv_x.poly_x(t)
-            if y_val < self.bezierv_y.controls_x[0]:
-                cumul_z = 0
-            elif y_val > self.bezierv_y.controls_x[-1]:
-                cumul_z = self.bezierv_x.pdf_numerator_t(t)
-            else:
-                y_inv = self.bezierv_y.root_find(y_val)
-                cumul_z = self.bezierv_x.pdf_numerator_t(t) * self.bezierv_y.eval_t(y_inv)[1]
-            return cumul_z
+        bezierv_sum = np.zeros(n_sims)
+        for bz in self.list_bezierv:
+            bezierv_sum += bz.random(n_sims, rng=rng)
 
-        result, _ = quad(integrand, 0, 1)
-        return self.bezierv_x.n * result
+        init_keys = {
+            "n", "init_x", "init_z", "init_t", "emp_cdf_data", "method_init_x"
+        }
+        fit_keys = {
+            "method", "step_size_PG", "max_iter_PG", "threshold_PG",
+            "step_size_PS", "max_iter_PS", "solver_NL", "max_iter_NM"
+        }
 
-    def conv(self, 
-             method='projgrad',
-             step_size_PG: float=0.001,
-             max_iter_PG: float=1000,
-             threshold_PG: float=1e-3,
-             step_size_PS: float=0.001,
-             max_iter_PS: int=1000,
-             solver_NL: str='ipopt',
-             max_iter_NM: int=1000 
-             ) -> tuple:
-        """
-        Numerically compute the convolution of two Bezier random variables.
+        init_kwargs = {k: v for k, v in kwargs.items() if k in init_keys}
+        fit_kwargs  = {k: v for k, v in kwargs.items() if k in fit_keys}
 
-        This method performs the convolution by:
-          - Defining the lower and upper bounds for the convolution as the sum of the
-            smallest and largest control points of bezierv_x and bezierv_y, respectively.
-          - Generating a set of data points over these bounds.
-          - Evaluating the cumulative distribution function (CDF) at each data point using the
-            cdf_z method.
-          - Initializing a ProjGrad instance with the computed data and empirical CDF values.
-          - Fitting the convolution Bezier random variable via projected gradient descent and updating
-            bezierv_conv.
+        unknown = set(kwargs).difference(init_keys | fit_keys)
+        if unknown:
+            raise TypeError(f"Unknown keyword(s) for convolve: {sorted(unknown)}")
 
-        Parameters
-        ----------
-        method : str, optional
-            The fitting method to use for the convolution. Default is 'projgrad'.
-            Other options may include 'nonlinear' or 'neldermead'.
-
-        Returns
-        -------
-        Bezierv
-            The updated Bezierv instance representing the convolution of the two input Bezier 
-            random variables.
-        float
-            The mean squared error (MSE) of the fit.
-        """
-        low_bound = self.bezierv_x.controls_x[0] + self.bezierv_y.controls_x[0]
-        up_bound = self.bezierv_x.controls_x[-1] + self.bezierv_y.controls_x[-1]
-        data = np.linspace(low_bound, up_bound, self.grid)
-
-        emp_cdf_data = np.zeros(self.grid)
-        for i in range(self.grid):
-            emp_cdf_data[i] = self.cdf_z(data[i])
-
-        if self.bezierv_x.n == self.bezierv_y.n:
-            controls_x = self.bezierv_x.controls_x + self.bezierv_y.controls_x
-            distfit = DistFit(data, emp_cdf_data=emp_cdf_data, init_x=controls_x, n=self.n)
-            bezierv, mse = distfit.fit(method=method)
-        else:
-            distfit = DistFit(data, emp_cdf_data=emp_cdf_data, n=self.n, method_init_x='uniform')
-            bezierv, mse = distfit.fit(method=method)
-
-        return bezierv, mse
+        fitter = DistFit(bezierv_sum, **init_kwargs)
+        bezierv_result, _ = fitter.fit(**fit_kwargs)
+        return bezierv_result
