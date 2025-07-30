@@ -104,7 +104,7 @@ class DistFit:
         Parameters
         ----------
         method : str, optional
-            The fitting method to use. Options are 'projgrad', 'nonlinear', or 'neldermead'.
+            The fitting method to use. Options are 'projgrad', 'nonlinear', 'projsubgrad', or 'neldermead'.
             Default is 'projgrad'.
         step_size_PG : float, optional
             The step size for the projected gradient descent method (default is 0.001).
