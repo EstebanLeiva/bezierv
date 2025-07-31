@@ -20,17 +20,18 @@ def triangular_cdf(z):
     return 1.0
 
 def test_cdf_z_matches_triangle(two_uniform_bezierv):
-    bx, by = two_uniform_bezierv
-    conv = Convolver(bx, by, grid=50)
+    bz_list = [i for i in two_uniform_bezierv]
+    conv = Convolver(bz_list)
+    bz_conv = conv.convolve(n_sims=1000, rng=42)
 
-    for z in [0.0, 0.2, 0.8, 1.0, 1.4, 2.0]:
-        val = conv.cdf_z(z)
-        expected = triangular_cdf(z)
-        assert val == pytest.approx(expected, abs=5e-3)
+    for x in [0, 0.2, 0.8, 1.0, 1.4, 2]:
+        val = bz_conv.cdf_x(x)
+        expected = triangular_cdf(x)
+        assert val == pytest.approx(expected, abs=5e-2)
 
 def test_conv_calls_distfit_and_returns(two_uniform_bezierv):
-    bx, by = two_uniform_bezierv
-    conv = Convolver(bx, by, grid=20)
-    bez_out, mse = conv.conv(method="projgrad")
+    bz_list = [i for i in two_uniform_bezierv]
+    conv = Convolver(bz_list)
+    bez_out = conv.convolve(method="projgrad")
     assert isinstance(bez_out, Bezierv)
     assert bez_out.check_ordering() is True

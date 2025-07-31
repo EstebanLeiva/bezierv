@@ -6,8 +6,14 @@ from scipy.optimize import brentq, bisect
 from scipy.integrate import quad
 from statsmodels.distributions.empirical_distribution import ECDF
 
+from numpy import tanh, arctanh
+
+#TODO: should throw error if controls_x and controls_z are not of the same length
+#TODO: should throw error if controls_x and controls_z are not ordered on the update
+#TODO: should throw error if we try to run a method and the controls_x and controls_z are np.zeros(n+1)
 class Bezierv:
-    def __init__(self, n: int, 
+    def __init__(self, 
+                 n: int, 
                  controls_x=None, 
                  controls_z=None):
         """
@@ -295,7 +301,7 @@ class Bezierv:
         _, p_z = self.eval_x(x)
         return p_z
 
-    def get_quantile(self, alpha, method='brentq'):
+    def quantile(self, alpha, method='brentq'):
         """
         Compute the quantile function (inverse CDF) for a given probability level alpha.
 
@@ -433,6 +439,40 @@ class Bezierv:
             raise False
         return True
     
+    def random(self, 
+               n_sims: int,
+               *,
+               rng: np.random.Generator | int | None = None):
+        """
+        Generate random samples from the Bezier random variable.
+
+        This method generates `n_sims` random samples from the Bezier random variable by evaluating
+        the inverse CDF at uniformly distributed random values in the interval [0, 1].
+
+        Parameters
+        ----------
+        n_sims : int
+            The number of random samples to generate.
+        rng : numpy.random.Generator | int | None, optional
+            Pseudorandom-number generator state.  If *None* (default), a new
+            ``numpy.random.Generator`` is created with fresh OS entropy.  Any
+            value accepted by :func:`numpy.random.default_rng` (e.g. a seed
+            integer or :class:`~numpy.random.SeedSequence`) is also allowed.
+
+
+        Returns
+        -------
+        np.array
+            An array of shape (n_sims,) containing the generated random samples from the Bezier random variable.
+        """
+        rng = np.random.default_rng(rng)
+        u = rng.uniform(0, 1, n_sims)
+        samples = np.zeros(n_sims)
+        for i in range(n_sims):
+            samples[i] = self.quantile(u[i])
+        return samples
+
+    
     def plot_cdf(self, data=None, num_points=100, ax=None):
         """
         Plot the cumulative distribution function (CDF) of the Bezier random variable alongside 
@@ -474,6 +514,7 @@ class Bezierv:
         ax.plot(x_bezier, cdf_x_bezier, label='Bezier cdf', linestyle='--')
         ax.scatter(self.controls_x, self.controls_z, label='Control Points', color='red')
         ax.legend()
+        plt.show()
 
     def plot_pdf(self, data=None, num_points=100, ax=None):
         """
@@ -508,3 +549,4 @@ class Bezierv:
 
         ax.plot(x_bezier, pdf_x_bezier, label='Bezier pdf', linestyle='-')
         ax.legend()
+        plt.show()
