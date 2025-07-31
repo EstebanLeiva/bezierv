@@ -6,6 +6,8 @@ from scipy.optimize import brentq, bisect
 from scipy.integrate import quad
 from statsmodels.distributions.empirical_distribution import ECDF
 
+from numpy import tanh, arctanh
+
 #TODO: should throw error if controls_x and controls_z are not of the same length
 #TODO: should throw error if controls_x and controls_z are not ordered on the update
 #TODO: should throw error if we try to run a method and the controls_x and controls_z are np.zeros(n+1)
@@ -437,7 +439,10 @@ class Bezierv:
             raise False
         return True
     
-    def random(self, n_sims: int, rng: int = 42):
+    def random(self, 
+               n_sims: int,
+               *,
+               rng: np.random.Generator | int | None = None):
         """
         Generate random samples from the Bezier random variable.
 
@@ -448,15 +453,20 @@ class Bezierv:
         ----------
         n_sims : int
             The number of random samples to generate.
-        rng : int, optional
-            The random seed for reproducibility (default is 42).
+        rng : numpy.random.Generator | int | None, optional
+            Pseudorandom-number generator state.  If *None* (default), a new
+            ``numpy.random.Generator`` is created with fresh OS entropy.  Any
+            value accepted by :func:`numpy.random.default_rng` (e.g. a seed
+            integer or :class:`~numpy.random.SeedSequence`) is also allowed.
+
 
         Returns
         -------
         np.array
             An array of shape (n_sims,) containing the generated random samples from the Bezier random variable.
         """
-        u = np.random.default_rng(rng).uniform(0, 1, n_sims)
+        rng = np.random.default_rng(rng)
+        u = rng.uniform(0, 1, n_sims)
         samples = np.zeros(n_sims)
         for i in range(n_sims):
             samples[i] = self.quantile(u[i])

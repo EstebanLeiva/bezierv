@@ -23,7 +23,8 @@ class Convolver:
     
     def convolve(self,
                  n_sims: int = 1000,
-                 rng=42,
+                 *,
+                 rng: np.random.Generator | int | None = None,
                  **kwargs) -> Bezierv:
         """
         Convolve the Bezier RVs via Monte Carlo and fit a Bezierv to the sum.
@@ -32,8 +33,8 @@ class Convolver:
         ----------
         n_sims : int
             Number of Monte Carlo samples.
-        rng : int or numpy.random.Generator
-            Seed or RNG for reproducibility (passed to each Bezierv.random).
+        rng : numpy.random.Generator | int | None, optional
+            Shared PRNG stream for *all* sampling.
         **kwargs :
             Init options for DistFit(...):
                 n, init_x, init_z, init_t, emp_cdf_data, method_init_x
@@ -41,9 +42,12 @@ class Convolver:
                 method, step_size_PG, max_iter_PG, threshold_PG,
                 step_size_PS, max_iter_PS, solver_NL, max_iter_NM
         """
+        rng = np.random.default_rng(rng)
+
         bezierv_sum = np.zeros(n_sims)
         for bz in self.list_bezierv:
-            bezierv_sum += bz.random(n_sims, rng=rng)
+            samples = bz.random(n_sims, rng=rng)
+            bezierv_sum += samples
 
         init_keys = {
             "n", "init_x", "init_z", "init_t", "emp_cdf_data", "method_init_x"
