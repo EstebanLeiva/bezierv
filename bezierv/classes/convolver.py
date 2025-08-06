@@ -19,8 +19,8 @@ class Convolver:
             A list of Bezierv instances representing the Bezier random variables to be convolved.
         """
         for bez in list_bezierv:
-            bez._validate_lengths()
-            bez._validate_ordering()
+            bez._validate_lengths(bez.controls_x, bez.controls_z)
+            bez._validate_ordering(bez.controls_x, bez.controls_z)
             bez._ensure_initialized()
         
         self.list_bezierv = list_bezierv
