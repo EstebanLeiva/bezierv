@@ -495,7 +495,8 @@ class Bezierv:
         if data is None:
             data_bool = False
             data = np.linspace(np.min(self.controls_x), np.max(self.controls_x), num_points)
-        
+
+        data = np.sort(data)
         x_bezier = np.zeros(len(data))
         cdf_x_bezier = np.zeros(len(data))
 

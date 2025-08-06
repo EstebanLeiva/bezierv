@@ -71,6 +71,7 @@ class DistFit:
         if init_x is None:
             self.init_x = self.get_controls_x(method_init_x)
         else:
+            init_x = np.asarray(init_x, dtype=float)
             self.init_x = init_x
 
         if init_t is None:
@@ -81,6 +82,7 @@ class DistFit:
         if init_z is None:
             self.init_z = self.get_controls_z()
         else:
+            init_z = np.asarray(init_z, dtype=float)
             self.init_z = init_z
 
         if emp_cdf_data is None:
@@ -134,14 +136,15 @@ class DistFit:
                                             threshold_PG)
         elif method == 'nonlinear':
             self.bezierv, self.mse = nl.fit(self.n,
-                                            self.m,
-                                            self.data,
-                                            self.bezierv,
-                                            self.init_x,
-                                            self.init_z,
-                                            self.init_t,
-                                            self.emp_cdf_data,
-                                            solver_NL)
+                                                self.m,
+                                                self.data,
+                                                self.bezierv,
+                                                self.init_x,
+                                                self.init_z,
+                                                self.init_t,
+                                                self.emp_cdf_data,
+                                                solver_NL)
+
         elif method == 'neldermead':
             self.bezierv, self.mse = nm.fit(self.n,
                                             self.m,
