@@ -10,7 +10,7 @@ def test_objective_function_zero_for_perfect_fit():
     x = np.array([0.0, 1.0])
     z = np.array([0.0, 1.0])
     emp_cdf = data.copy()
-    bez = Bezierv(n)
+    bez = Bezierv(n, controls_x=np.array([0.0, 1.0]), controls_z=np.array([0.0, 1.0]))
 
     concat = np.concatenate((x, z))
     val = nm.objective_function(concat, n, m, data, bez, emp_cdf)
@@ -23,7 +23,7 @@ def test_objective_function_lagrangian_adds_penalty():
     x_bad = np.array([1.0, -0.5])
     z_bad = np.array([0.2, 0.2])
     emp_cdf = data.copy()
-    bez = Bezierv(n)
+    bez = Bezierv(n, controls_x=np.array([0.0, 1.0]), controls_z=np.array([0.0, 1.0]))
     good = np.concatenate((np.array([0.0, 1.0]), np.array([0.0, 1.0])))
     bad  = np.concatenate((x_bad, z_bad))
     mse_good = nm.objective_function_lagrangian(good, n, m, data, bez, emp_cdf)
@@ -37,7 +37,7 @@ def test_fit_returns_low_mse_and_updates_bezier():
     init_x = np.array([-0.05, 1.05])
     init_z = np.array([0, 1])
     emp_cdf = data.copy()
-    bez = Bezierv(n)
+    bez = Bezierv(n, controls_x=np.array([0.0, 1.0]), controls_z=np.array([0.0, 1.0]))
 
     fitted_bez, mse = nm.fit(
         n=n,

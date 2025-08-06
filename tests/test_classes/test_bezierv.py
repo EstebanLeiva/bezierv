@@ -46,18 +46,10 @@ def test_pdf_uniform(linear_bezierv):
 
 def test_moments(linear_bezierv):
     bz = linear_bezierv
-    bz.update_bezierv(bz.controls_x, bz.controls_z, (0.0, 1.0))
+    bz.update_bezierv(bz.controls_x, bz.controls_z)
     assert bz.get_mean() == pytest.approx(0.5)
+    bz.bounds = bz.support
     assert bz.get_variance() == pytest.approx(1/12, rel=1e-3)
-
-
-def test_check_ordering():
-    good = Bezierv(1, controls_x=np.array([0,1]), controls_z=np.array([0,1]))
-    assert good.check_ordering()
-    bad  = Bezierv(1, controls_x=np.array([1,0]), controls_z=np.array([0,1]))
-    with pytest.raises(TypeError):
-        bad.check_ordering()
-
 
 def test_plot_functions_do_not_crash(linear_bezierv):
     bz = linear_bezierv

@@ -127,6 +127,6 @@ def fit(n: int,
     se = 0
     for j in range(m):
         se += (bezierv.poly_z(t[j], z) - emp_cdf_data[j])**2
-    bezierv.update_bezierv(init_x, z, (data[0], data[-1]))
+    bezierv.update_bezierv(init_x, z)
     mse = se/m
     return bezierv, mse

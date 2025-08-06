@@ -34,4 +34,5 @@ def test_conv_calls_distfit_and_returns(two_uniform_bezierv):
     conv = Convolver(bz_list)
     bez_out = conv.convolve(method="projgrad")
     assert isinstance(bez_out, Bezierv)
-    assert bez_out.check_ordering() is True
+    assert np.all(np.diff(bez_out.controls_x) >= 0)
+    assert np.all(np.diff(bez_out.controls_z) >= 0)

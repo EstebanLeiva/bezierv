@@ -11,7 +11,7 @@ def test_grad_zero_error_returns_zero_gradient():
     m = t.size
     emp_cdf = t.copy()         # perfect fit
     controls_z = np.array([0.0, 1.0])
-    bez = Bezierv(n)
+    bez = Bezierv(n, controls_x=np.array([0.0, 1.0]), controls_z=np.array([0.0, 1.0]))
 
     g = pg.grad(n, m, t, bez, controls_z, emp_cdf)
     np.testing.assert_allclose(g, np.zeros_like(g), atol=1e-12)
@@ -38,7 +38,7 @@ def test_fit_converges_and_returns_low_mse():
     emp_cdf = t.copy()
     init_x = np.array([0.0, 1.0])
     init_z = np.array([0.2, 0.8])
-    bez = Bezierv(n)
+    bez = Bezierv(n, controls_x=np.array([0.0, 1.0]), controls_z=np.array([0.0, 1.0]))
 
     bezierv , mse = pg.fit(
         n=n,
@@ -58,6 +58,3 @@ def test_fit_converges_and_returns_low_mse():
     np.testing.assert_allclose(bezierv.controls_z, np.array([0., 1.])), "Expected z control points to be [0, 1]"
     np.testing.assert_allclose(bezierv.controls_x, np.array([0., 1.])), "Expected x control points to be [0, 1]"
     assert mse < 1e-6, "Solver failed to reach a near-perfect fit"
-    
-
-

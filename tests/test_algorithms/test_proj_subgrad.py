@@ -9,7 +9,7 @@ def test_subgrad_zero_when_perfect_fit():
     m = t.size
     emp_cdf = t.copy()
     controls_z = np.array([0.0, 1.0])
-    bez = Bezierv(n)
+    bez = Bezierv(n, controls_x=np.array([0.0, 1.0]), controls_z=np.array([0.0, 1.0]))
     g_x, g_z = ps.subgrad(n, m, bez, t, controls_z, emp_cdf)
     np.testing.assert_allclose(g_x, 0.0)
     np.testing.assert_allclose(g_z, 0.0)
@@ -43,7 +43,7 @@ def test_fit_converges_to_linear_solution():
     emp_cdf = t_init.copy()
     init_x = np.array([2.0, 8.0])
     init_z = np.array([0.4, 0.7])
-    bez = Bezierv(n)
+    bez = Bezierv(n, controls_x=np.array([0.0, 1.0]), controls_z=np.array([0.0, 1.0]))
 
     _, mse = ps.fit(
         n=n,

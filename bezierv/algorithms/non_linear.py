@@ -160,7 +160,7 @@ def fit(n: int,
                 controls_x = np.array([model.x[i]() for i in model.N])
                 controls_z = np.array([model.z[i]() for i in model.N])
                 mse = model.mse()
-                bezierv.update_bezierv(controls_x, controls_z, (data[0], data[-1]))
+                bezierv.update_bezierv(controls_x, controls_z)
         except Exception as e:
             print("NonLinearSolver [fit]: An exception occurred during model evaluation:", e)
 

@@ -8,9 +8,6 @@ from statsmodels.distributions.empirical_distribution import ECDF
 
 from numpy import tanh, arctanh
 
-#TODO: should throw error if controls_x and controls_z are not of the same length
-#TODO: should throw error if controls_x and controls_z are not ordered on the update
-#TODO: should throw error if we try to run a method and the controls_x and controls_z are np.zeros(n+1)
 class Bezierv:
     def __init__(self, 
                  n: int, 
@@ -71,8 +68,13 @@ class Bezierv:
             self.controls_x = np.zeros(n + 1)
             self.controls_z = np.zeros(n + 1)
         elif controls_x is not None and controls_z is not None:
+            controls_x = np.asarray(controls_x, dtype=float)
+            controls_z = np.asarray(controls_z, dtype=float)
+            self._validate_lengths(controls_x, controls_z)
+            self._validate_ordering(controls_x, controls_z)
             self.controls_x = controls_x
             self.controls_z = controls_z
+            self.support = (controls_x[0], controls_x[-1])
         else:
             raise ValueError('Either all or none of the parameters controls_x and controls_y must be provided')
 
@@ -86,8 +88,7 @@ class Bezierv:
 
     def update_bezierv(self, 
                        controls_x: np.array, 
-                       controls_z: np.array, 
-                       bounds: tuple):
+                       controls_z: np.array):
         """
         Update the control points for the Bezier curve, bounds and recalculate deltas.
 
@@ -97,16 +98,20 @@ class Bezierv:
             The new x-coordinates of the control points.
         controls_z : array-like
             The new z-coordinates of the control points.
-        bounds : tuple
-            The new bounds for the Bezier random variable, typically a tuple (min, max).
 
         Returns
         -------
         None
         """
+        controls_x = np.asarray(controls_x, dtype=float)
+        controls_z = np.asarray(controls_z, dtype=float)
+        self._validate_lengths(controls_x, controls_z)
+        self._validate_ordering(controls_x, controls_z)
+
         self.controls_x = controls_x
         self.controls_z = controls_z
-        self.bounds = bounds
+        self.support = (controls_x[0], controls_x[-1])
+
         self.deltas()
 
     def combinations(self):
@@ -183,6 +188,7 @@ class Bezierv:
             The evaluated x-coordinate at t.
         """
         if controls_x is None:
+            self._ensure_initialized()
             controls_x = self.controls_x
         n = self.n
         p_x = 0
@@ -207,6 +213,7 @@ class Bezierv:
             The evaluated z-coordinate at t.
         """
         if controls_z is None:
+            self._ensure_initialized()
             controls_z = self.controls_z
         n = self.n
         p_z = 0
@@ -233,6 +240,7 @@ class Bezierv:
         float
             The parameter t in the interval [0, 1] such that poly_x(t) is approximately equal to x.
         """
+        self._ensure_initialized()
         def poly_x_zero(t, x):
             return self.poly_x(t) - x
         if method == 'brentq':
@@ -255,6 +263,7 @@ class Bezierv:
         tuple of floats
             A tuple (p_x, p_z) where p_x is the evaluated x-coordinate and p_z is the evaluated z-coordinate.
         """
+        self._ensure_initialized()
         n = self.n
         p_x = 0
         p_z = 0
@@ -277,6 +286,7 @@ class Bezierv:
         tuple of floats
             A tuple (p_x, p_z) where p_x is the x-coordinate and p_z is the z-coordinate of the curve at x.
         """
+        self._ensure_initialized()
         t = self.root_find(x)
         return self.eval_t(t)
     
@@ -294,6 +304,7 @@ class Bezierv:
         float
             The CDF value at the given x-coordinate.
         """
+        self._ensure_initialized()
         if x < self.controls_x[0]:
             return 0
         if x > self.controls_x[-1]:
@@ -315,6 +326,7 @@ class Bezierv:
         float
             The quantile value corresponding to the given alpha.
         """
+        self._ensure_initialized()
         def cdf_t(t, alpha):
             return self.poly_z(t) - alpha
         
@@ -338,6 +350,7 @@ class Bezierv:
         float
             The computed PDF value at t.
         """
+        self._ensure_initialized()
         n = self.n
         pdf_num_z = 0
         pdf_denom_x = 0
@@ -360,6 +373,7 @@ class Bezierv:
         float
             The computed PDF value at x.
         """
+        self._ensure_initialized()
         t = self.root_find(x)
         return self.pdf_t(t)
     
@@ -377,6 +391,7 @@ class Bezierv:
         float
             The numerator of the PDF at t.
         """
+        self._ensure_initialized()
         pdf_num_z = 0
         for i in range(self.n):
             pdf_num_z += self.bernstein(t, i, self.comb_minus, self.n - 1) * self.deltas_z[i]
@@ -396,6 +411,7 @@ class Bezierv:
         float
             The mean value of the distribution.
         """
+        self._ensure_initialized()
         if self.mean == np.inf:
             if closed_form:
                 total = 0.0
@@ -412,6 +428,7 @@ class Bezierv:
         return self.mean
 
     def get_variance(self):
+        self._ensure_initialized()
         a, b = self.bounds
         E_x2, _ = quad(lambda x: (x)**2 * self.pdf_x(x), a, b)
         if self.mean == np.inf:
@@ -419,25 +436,6 @@ class Bezierv:
         else:
             self.variance = E_x2 - self.mean**2
         return self.variance
-    
-    def check_ordering(self):
-        """
-        Check if the control points are ordered in non-decreasing order.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        bool
-            True if the control points are ordered in non-decreasing order, False otherwise.
-        """
-        if not np.all(np.diff(self.controls_x) >= 0):
-            raise False
-        if not np.all(np.diff(self.controls_z) >= 0):
-            raise False
-        return True
     
     def random(self, 
                n_sims: int,
@@ -465,6 +463,7 @@ class Bezierv:
         np.array
             An array of shape (n_sims,) containing the generated random samples from the Bezier random variable.
         """
+        self._ensure_initialized()
         rng = np.random.default_rng(rng)
         u = rng.uniform(0, 1, n_sims)
         samples = np.zeros(n_sims)
@@ -491,6 +490,7 @@ class Bezierv:
         -------
         None
         """
+        self._ensure_initialized()
         data_bool = True
         if data is None:
             data_bool = False
@@ -504,8 +504,10 @@ class Bezierv:
             x_bezier[i] = p_x
             cdf_x_bezier[i] = p_z
 
+        show = False
         if ax is None:
-            ax = plt.gca() 
+            ax = plt.gca()
+            show = True
 
         if data_bool:
             ecdf_fn = ECDF(data)
@@ -514,7 +516,8 @@ class Bezierv:
         ax.plot(x_bezier, cdf_x_bezier, label='Bezier cdf', linestyle='--')
         ax.scatter(self.controls_x, self.controls_z, label='Control Points', color='red')
         ax.legend()
-        plt.show()
+        if show:
+            plt.show()
 
     def plot_pdf(self, data=None, num_points=100, ax=None):
         """
@@ -533,14 +536,17 @@ class Bezierv:
         -------
         None
         """
+        self._ensure_initialized()
         if data is None:
             data = np.linspace(np.min(self.controls_x), np.max(self.controls_x), num_points)
 
         x_bezier = np.zeros(len(data))
         pdf_x_bezier = np.zeros(len(data))
 
+        show = False
         if ax is None:
             ax = plt.gca()
+            show = True
 
         for i in range(len(data)):
             p_x, _ = self.eval_x(data[i])
@@ -549,4 +555,24 @@ class Bezierv:
 
         ax.plot(x_bezier, pdf_x_bezier, label='Bezier pdf', linestyle='-')
         ax.legend()
-        plt.show()
+        if show:
+            plt.show()
+
+    def _validate_lengths(self, controls_x, controls_z):
+        if len(controls_x) != len(controls_z):
+            raise ValueError("controls_x and controls_z must have the same length.")
+        if len(controls_x) != self.n + 1:
+            raise ValueError(f"controls arrays must have length n+1 (= {self.n + 1}).")
+
+    def _validate_ordering(self, controls_x, controls_z):
+        if np.any(np.diff(controls_x) < 0):
+            raise ValueError("controls_x must be nondecreasing.")
+        if np.any(np.diff(controls_z) < 0):
+            raise ValueError("controls_z must be nondecreasing.")
+
+    def _ensure_initialized(self):
+        if np.allclose(self.controls_x, 0) and np.allclose(self.controls_z, 0):
+            raise RuntimeError(
+                "Bezier controls are all zeros (placeholder). "
+                "Provide valid controls in the constructor or call update_bezierv()."
+            )

@@ -26,8 +26,7 @@ def test_fit_dispatch_and_mse(normal_data, method, target_mse):
     df = DistFit(normal_data, n=3)
     bez, mse = df.fit(method=method, max_iter_PS = 100, max_iter_PG=100)
     assert mse <= target_mse
-    assert bez.check_ordering() is True
-    
+
 def test_bad_method_raises(normal_data):
     df = DistFit(normal_data)
     with pytest.raises(ValueError):

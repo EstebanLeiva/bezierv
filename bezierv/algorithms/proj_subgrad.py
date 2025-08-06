@@ -198,6 +198,6 @@ def fit(n: int,
         z = z_prime
         t = t_prime
         
-    bezierv.update_bezierv(x_best, z_best, (data[0], data[-1]))
+    bezierv.update_bezierv(x_best, z_best)
 
     return bezierv, f_best

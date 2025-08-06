@@ -152,6 +152,6 @@ def fit(n: int,
     sol = result.x
     controls_x = sol[0 : n + 1]
     controls_z = sol[n + 1: ]
-    bezierv.update_bezierv(controls_x, controls_z, (data[0], data[-1]))
+    bezierv.update_bezierv(controls_x, controls_z)
     mse = objective_function(sol, n, m, data, bezierv, emp_cdf_data)
     return bezierv, mse
