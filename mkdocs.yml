@@ -1,4 +1,15 @@
-site_name: Bezierv Docs
+site_name: Bezierv Documentation
 
 theme:
   name: material
+
+plugins:
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: numpy
+            docstring_section_style: table
+            merge_init_into_class: true
+            show_source: false
+            members_order: source
