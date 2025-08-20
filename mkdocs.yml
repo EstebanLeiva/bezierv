@@ -2,6 +2,8 @@ site_name: Bezierv Documentation
 
 theme:
   name: material
+  logo: assets/logo.png
+  favicon: assets/logo.png
 
 plugins:
   - mkdocstrings:
