@@ -1,4 +1,4 @@
-# Bezierv: Bézier Distributions for Bounded Data
+# Bezierv: A Python Package for Bézier Distributions
 
 Bezierv provides utilities to **fit, analyze, sample, and convolve** Bézier-based
 random variables from empirical data. It includes multiple fitting algorithms
@@ -14,14 +14,14 @@ plus helpers for plotting and Monte Carlo convolution.
 Install your package (editable mode recommended while developing):
 
 ```bash
-pip install -e .
+pip install bezierv
 ```
 
 Fit a Bézier random variable to data with `DistFit` and sample from it:
 
 ```python
 import numpy as np
-from distfit import DistFit
+from bezierv.classes.distfit import DistFit
 
 # Synthetic bounded data
 rng = np.random.default_rng(42)
@@ -33,14 +33,13 @@ print("MSE:", mse)
 
 samples = bz.random(10_000, rng=42)     # draw samples via inverse CDF
 q90 = bz.quantile(0.90)                 # 90% quantile
+print("90% quantile:", q90)
 ```
 
 Plot empirical vs. fitted CDF (optional):
 
 ```python
-import matplotlib.pyplot as plt
 bz.plot_cdf(data)       # overlays ECDF and Bézier CDF
-plt.show()
 ```
 
 ---
@@ -51,12 +50,18 @@ Use `Convolver` to approximate the **sum** of several fitted distributions via
 Monte Carlo, then fit another Bézier RV to the result:
 
 ```python
-from convolver import Convolver
-from distfit import DistFit
+from bezierv.classes.convolver import Convolver
+from bezierv.classes.distfit import DistFit
 
 # Fit two Bezier RVs separately (bz1, bz2) ... then:
 conv = Convolver([bz, bz])          # example: sum with itself
-bz_sum = conv.convolve(n_sims=50_000, rng=123, method="projgrad", n=7)
+bz_sum = conv.convolve(n_sims=1_000, rng=123, method="projgrad", n=7)
+```
+
+Plot fitted CDF (optional):
+
+```python
+bz_sum.plot_cdf(data)       # overlays ECDF and Bézier CDF
 ```
 
 ---
@@ -73,4 +78,3 @@ bz_sum = conv.convolve(n_sims=50_000, rng=123, method="projgrad", n=7)
 ## Next steps
 
 - Browse the **[API reference](reference.md)** for the full class and function docs.
-- Configure `mkdocstrings` in `mkdocs.yml` (see the top of *reference.md* for a minimal snippet).

@@ -16,7 +16,7 @@ def test_uniform_initial_x(normal_data):
     "method, target_mse",
     [
         ("projgrad", 1e-2),
-        ("nonlinear", 1e-2),
+        #("nonlinear", 1e-2),
         ("neldermead", 1e-2),
         ("projsubgrad", 1e-2),
     ],

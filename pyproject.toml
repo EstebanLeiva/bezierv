@@ -4,16 +4,46 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bezierv"
-authors = [
-    {name = "Esteban Leiva", email = "e.leivam@uniandes.edu.co"},
-    {name = "Andrés L. Medaglia", email = "amedagli@uniandes.edu.co"},
-]
 version = "0.1.0"
+authors = [
+  { name = "Esteban Leiva", email = "e.leivam@uniandes.edu.co" },
+  { name = "Andrés L. Medaglia", email = "amedagli@uniandes.edu.co" },
+]
+requires-python = ">=3.10,<3.14"
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+
 dependencies = [
-    "matplotlib==3.10.3",
-    "numpy==2.2.3",
-    "pandas==2.3.0",
-    "Pyomo==6.9.0", 
-    "scipy==1.15.3",
-    "statsmodels==0.14.4"
+  # --- Python 3.10 ---
+  "numpy>=1.26,<2; python_version == '3.10'",
+  "scipy>=1.13,<1.16; python_version == '3.10'",
+  "matplotlib>=3.9,<3.11; python_version == '3.10'",
+  "statsmodels>=0.14.2,<0.15; python_version == '3.10'",
+  "pyomo>=6.8,<7; python_version == '3.10'",
+
+  # --- Python 3.11 ---
+  "numpy>=1.26,<2.3; python_version == '3.11'",
+  "scipy>=1.13,<1.17; python_version == '3.11'",
+  "matplotlib>=3.9,<3.11; python_version == '3.11'",
+  "statsmodels>=0.14.2,<0.15; python_version == '3.11'",
+  "pyomo>=6.8,<7; python_version == '3.11'",
+
+  # --- Python 3.12 ---
+  "numpy>=2.1,<2.3; python_version == '3.12'",
+  "scipy>=1.14.1,<1.17; python_version == '3.12'",
+  "matplotlib>=3.9,<3.11; python_version == '3.12'",
+  "statsmodels>=0.14.2,<0.15; python_version == '3.12'",
+  "pyomo>=6.8,<7; python_version == '3.12'",
+
+  # --- Python 3.13 ---
+  "numpy>=2.2,<2.4; python_version == '3.13'",
+  "scipy>=1.14.1,<1.17; python_version == '3.13'",
+  "matplotlib>=3.9,<3.11; python_version == '3.13'",
+  "statsmodels>=0.14.2,<0.15; python_version == '3.13'",
+  "pyomo>=6.8,<7; python_version == '3.13'",
 ]
