@@ -4,7 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bezierv"
-version = "0.1.0"
+version = "0.1.1"
+description = "This package serves as a computational framework for Bézier distributions."
 authors = [
   { name = "Esteban Leiva", email = "e.leivam@uniandes.edu.co" },
   { name = "Andrés L. Medaglia", email = "amedagli@uniandes.edu.co" },
