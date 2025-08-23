@@ -6,10 +6,17 @@ build-backend = "setuptools.build_meta"
 name = "bezierv"
 version = "0.1.1"
 description = "This package serves as a computational framework for Bézier distributions."
+readme = { file = "README.md", content-type = "text/markdown" }
+license = "MIT"
 authors = [
   { name = "Esteban Leiva", email = "e.leivam@uniandes.edu.co" },
   { name = "Andrés L. Medaglia", email = "amedagli@uniandes.edu.co" },
 ]
+maintainers = [
+  { name = "Esteban Leiva", email = "e.leivam@uniandes.edu.co" },
+]
+keywords = ["bezier", "distribution", "optimization"]
+
 requires-python = ">=3.10,<3.14"
 classifiers = [
   "Programming Language :: Python :: 3 :: Only",
@@ -48,3 +55,8 @@ dependencies = [
   "statsmodels>=0.14.2,<0.15; python_version == '3.13'",
   "pyomo>=6.8,<7; python_version == '3.13'",
 ]
+
+[project.urls]
+Homepage      = "https://github.com/you/your-package"
+Documentation = "https://your-package.readthedocs.io/"
+Source        = "https://github.com/you/your-package"

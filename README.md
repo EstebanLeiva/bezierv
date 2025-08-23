@@ -18,7 +18,8 @@
 ---
 
 ## Why Bézier random variables?  
-Classical parametric distributions can be too rigid; non-parametric methods can be noisy.  
+Classical parametric distributions can be too rigid.
+
 Bézier curves offer a sweet spot: **smooth** and **shape-controlled**.  
 With **bezierv** you can:
 
@@ -31,8 +32,4 @@ With **bezierv** you can:
 ## Installation
 
 ```bash
-pip install bezierv            # from PyPI (coming soon)
-# or, for development:
-git clone https://github.com/your-org/bezierv
-cd bezierv
-pip install -e .
+pip install bezierv
