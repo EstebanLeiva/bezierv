@@ -1,0 +1,462 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+      
+        <link rel="next" href="reference/">
+      
+      
+      <link rel="icon" href="assets/logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.18">
+    
+    
+      
+        <title>Bezierv Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="assets/stylesheets/main.7e37652d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#bezierv-a-python-package-for-bezier-distributions" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="." title="Bezierv Documentation" class="md-header__button md-logo" aria-label="Bezierv Documentation" data-md-component="logo">
+      
+  <img src="assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Bezierv Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Bezierv: A Python Package for Bézier Distributions
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="." title="Bezierv Documentation" class="md-nav__button md-logo" aria-label="Bezierv Documentation" data-md-component="logo">
+      
+  <img src="assets/logo.png" alt="logo">
+
+    </a>
+    Bezierv Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Bezierv: A Python Package for Bézier Distributions
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="." class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Bezierv: A Python Package for Bézier Distributions
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#quickstart" class="md-nav__link">
+    <span class="md-ellipsis">
+      Quickstart
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#convolution-sum-of-independent-bezier-rvs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Convolution (sum of independent Bézier RVs)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fitting-methods-at-a-glance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fitting methods at a glance
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      Next steps
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    API reference
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#quickstart" class="md-nav__link">
+    <span class="md-ellipsis">
+      Quickstart
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#convolution-sum-of-independent-bezier-rvs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Convolution (sum of independent Bézier RVs)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fitting-methods-at-a-glance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fitting methods at a glance
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      Next steps
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="bezierv-a-python-package-for-bezier-distributions">Bezierv: A Python Package for Bézier Distributions</h1>
+<p>Bezierv provides utilities to <strong>fit, analyze, sample, and convolve</strong> Bézier-based
+random variables from empirical data. It includes multiple fitting algorithms
+(projected gradient, projected subgradient, nonlinear (Pyomo/IPOPT), and Nelder–Mead),
+plus helpers for plotting and Monte Carlo convolution.</p>
+<blockquote>
+<p><strong>Tip:</strong> See the <a href="reference/">API reference</a> for auto-generated docs from the code.</p>
+</blockquote>
+<hr />
+<h2 id="quickstart">Quickstart</h2>
+<p>Install your package (editable mode recommended while developing):</p>
+<pre><code class="language-bash">pip install bezierv
+</code></pre>
+<p>Fit a Bézier random variable to data with <code>DistFit</code> and sample from it:</p>
+<pre><code class="language-python">import numpy as np
+from bezierv.classes.distfit import DistFit
+
+# Synthetic bounded data
+rng = np.random.default_rng(42)
+data = rng.beta(2, 5, 1000)  # replace with your data
+
+fitter = DistFit(data, n=5)            # n = degree (n control segments, n+1 control points)
+bz, mse = fitter.fit(method=&quot;projgrad&quot;)  # or: 'nonlinear', 'projsubgrad', 'neldermead'
+print(&quot;MSE:&quot;, mse)
+
+samples = bz.random(10_000, rng=42)     # draw samples via inverse CDF
+q90 = bz.quantile(0.90)                 # 90% quantile
+print(&quot;90% quantile:&quot;, q90)
+</code></pre>
+<p>Plot empirical vs. fitted CDF (optional):</p>
+<pre><code class="language-python">bz.plot_cdf(data)       # overlays ECDF and Bézier CDF
+</code></pre>
+<hr />
+<h2 id="convolution-sum-of-independent-bezier-rvs">Convolution (sum of independent Bézier RVs)</h2>
+<p>Use <code>Convolver</code> to approximate the <strong>sum</strong> of several fitted distributions via
+Monte Carlo, then fit another Bézier RV to the result:</p>
+<pre><code class="language-python">from bezierv.classes.convolver import Convolver
+from bezierv.classes.distfit import DistFit
+
+# Fit two Bezier RVs separately (bz1, bz2) ... then:
+conv = Convolver([bz, bz])          # example: sum with itself
+bz_sum = conv.convolve(n_sims=1_000, rng=123, method=&quot;projgrad&quot;, n=7)
+</code></pre>
+<p>Plot fitted CDF (optional):</p>
+<pre><code class="language-python">bz_sum.plot_cdf(data)       # overlays ECDF and Bézier CDF
+</code></pre>
+<hr />
+<h2 id="fitting-methods-at-a-glance">Fitting methods at a glance</h2>
+<ul>
+<li><strong>Projected Gradient (<code>projgrad</code>)</strong> – fast and simple; optimizes <em>z</em> controls with projection.</li>
+<li><strong>Projected Subgradient (<code>projsubgrad</code>)</strong> – updates both <em>x</em> and <em>z</em> with projection.</li>
+<li><strong>Nonlinear (<code>nonlinear</code>)</strong> – solves a constrained model via Pyomo (e.g., IPOPT).</li>
+<li><strong>Nelder–Mead (<code>neldermead</code>)</strong> – derivative-free simplex search with penalties.</li>
+</ul>
+<hr />
+<h2 id="next-steps">Next steps</h2>
+<ul>
+<li>Browse the <strong><a href="reference/">API reference</a></strong> for the full class and function docs.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": ".", "features": [], "search": "assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="assets/javascripts/bundle.92b07e13.min.js"></script>
+      
+    
+  </body>
+</html>
