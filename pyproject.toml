@@ -7,7 +7,7 @@ name = "bezierv"
 version = "0.1.1"
 description = "This package serves as a computational framework for Bézier distributions."
 readme = { file = "README.md", content-type = "text/markdown" }
-license = "MIT"
+license = { file = "LICENSE" }
 authors = [
   { name = "Esteban Leiva", email = "e.leivam@uniandes.edu.co" },
   { name = "Andrés L. Medaglia", email = "amedagli@uniandes.edu.co" },

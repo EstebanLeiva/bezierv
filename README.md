@@ -12,7 +12,7 @@
   <!-- Add real badges once you publish to PyPI / set up CI -->
   <img alt="PyPI" src="https://img.shields.io/pypi/v/bezierv?style=flat-square">
   <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/EstebanLeiva/bezierv/ci.yml?style=flat-square">
-  <img alt="License" src="https://img.shields.io/github/license/EstebanLeiva/bezierv?style=flat-square">
+  <img alt="License" src="https://img.shields.io/badge/License-MIT-informational?style=flat-square">
 </p>
 
 ---
