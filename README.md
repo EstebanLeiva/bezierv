@@ -5,7 +5,7 @@
 
 <h1 align="center">bezierv</h1>
 <p align="center">
-  <em>Fit smooth Bézier random variables to empirical data &mdash; elegant, differentiable, and fast.</em>
+  <em>Fit smooth Bézier random variables to empirical data</em>
 </p>
 
 <p align="center">
