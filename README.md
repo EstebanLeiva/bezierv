@@ -33,3 +33,4 @@ With **bezierv** you can:
 
 ```bash
 pip install bezierv
+```
