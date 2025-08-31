@@ -57,6 +57,5 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage      = "https://github.com/you/your-package"
-Documentation = "https://your-package.readthedocs.io/"
-Source        = "https://github.com/you/your-package"
+Documentation = "https://estebanleiva.github.io/bezierv/"
+Source        = "https://github.com/EstebanLeiva/bezierv"
