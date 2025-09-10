@@ -437,6 +437,8 @@ class Bezierv:
             self.variance = E_x2 - self.mean**2
         return self.variance
     
+    #TODO: implement skewness and kurtosis
+    
     def random(self, 
                n_sims: int,
                *,
@@ -577,3 +579,169 @@ class Bezierv:
                 "Bezier controls are all zeros (placeholder). "
                 "Provide valid controls in the constructor or call update_bezierv()."
             )
+        
+from bokeh.plotting import figure, curdoc
+from bokeh.models import (ColumnDataSource, PointDrawTool, Button, CustomJS, 
+                          DataTable, TableColumn, NumberFormatter)
+from bokeh.layouts import column, row
+
+class InteractiveBezierv:
+    """Manages an interactive Bezier distribution in a Bokeh plot."""
+    
+    def __init__(self, controls_x, controls_z):
+        self._is_updating = False
+
+        n = len(controls_x) - 1
+        self.bezier = Bezierv(n=n, controls_x=controls_x, controls_z=controls_z)
+
+        self.controls_source = ColumnDataSource(data=self._get_controls_data())
+        self.curve_source = ColumnDataSource(data=self._get_curve_data())
+        
+        self.plot = figure(
+            height=600, width=900,
+            title="Interactive Bézier CDF Editor",
+            x_axis_label="x", y_axis_label="CDF",
+            y_range=(-0.05, 1.05)
+        )
+        
+        self.plot.line(x='x', y='y', source=self.curve_source, line_width=3, legend_label="Bézier CDF", color="navy")
+        self.plot.line(x='x', y='y', source=self.controls_source, line_dash="dashed", color="gray")
+        
+        controls_renderer = self.plot.scatter(
+            x='x', y='y', source=self.controls_source, size=12,
+            legend_label="Control Points", color="firebrick"
+        )
+        self.plot.legend.location = "top_left"
+
+        draw_tool = PointDrawTool(renderers=[controls_renderer])
+        self.plot.add_tools(draw_tool)
+        self.plot.toolbar.active_tap = draw_tool
+
+        formatter = NumberFormatter(format="0.000")
+        columns = [
+            TableColumn(field="x", title="X", formatter=formatter),
+            TableColumn(field="y", title="Z", formatter=formatter)
+        ]
+        
+        self.data_table = DataTable(
+            source=self.controls_source,
+            columns=columns, 
+            width=250, 
+            height=600, 
+            editable=True
+        )
+
+        self.download_button = Button(
+            label="Download Control Points as CSV", 
+            button_type="success", 
+            width=250
+        )
+
+        callback = CustomJS(args=dict(source=self.controls_source), code="""
+            const data = source.data;
+            const file_name = 'control_points.csv';
+            let csv_content = 'X,Z_CDF\\n'; // CSV Header
+
+            // Iterate over the data and build the CSV string
+            for (let i = 0; i < data.x.length; i++) {
+                const row = [data.x[i], data.y[i]];
+                csv_content += row.join(',') + '\\n';
+            }
+
+            // Create a Blob and trigger the download
+            const blob = new Blob([csv_content], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = file_name;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        """)
+        
+        self.download_button.js_on_click(callback)
+
+        self.controls_source.on_change('data', self._update_callback)
+
+        widgets_layout = column(self.plot, self.download_button)
+        self.layout = row(widgets_layout, self.data_table)
+
+    def _get_controls_data(self):
+        """Returns the current control points from the Bezierv instance."""
+        return {'x': self.bezier.controls_x, 'y': self.bezier.controls_z}
+
+    def _get_curve_data(self, num_points=200):
+        """Calculates and returns the CDF curve points."""
+        t = np.linspace(0, 1, num_points)
+        curve_x = [self.bezier.poly_x(ti) for ti in t]
+        curve_z = [self.bezier.poly_z(ti) for ti in t]
+        return {'x': curve_x, 'y': curve_z}
+
+    def _update_callback(self, attr, old, new):
+        """Handles moving, adding, and deleting control points."""
+        
+        if self._is_updating:
+            return
+
+        try:
+            self._is_updating = True
+
+            new_x = new['x']
+            new_z = new['y']
+
+            is_point_added = len(new_x) > len(old['x'])
+            
+            if is_point_added:
+                old_points_sorted = sorted(zip(old['x'], old['y']))
+                
+                if len(old_points_sorted) < 2:
+                    raise ValueError("Cannot add a point, need at least 2 existing points.")
+
+                mid_index = len(old_points_sorted) // 2
+
+                p_before = old_points_sorted[mid_index - 1]
+                p_after = old_points_sorted[mid_index]
+
+                x_new = (p_before[0] + p_after[0]) / 2.0
+                y_new = (p_before[1] + p_after[1]) / 2.0
+                
+                final_points = old_points_sorted
+                final_points.insert(mid_index, (x_new, y_new))
+                
+                final_x, final_z = zip(*final_points)
+                final_x, final_z = list(final_x), list(final_z)
+            
+            else:
+                sorted_points = sorted(zip(new_x, new_z))
+                if not sorted_points:
+                    final_x, final_z = [], []
+                else:
+                    final_x, final_z = zip(*sorted_points)
+                    final_x, final_z = list(final_x), list(final_z)
+
+                if final_z != sorted(final_z):
+                    raise ValueError("Control points' y-values must be in non-decreasing order.")
+
+            if len(final_x) < 2:
+                raise ValueError("At least two control points are required.")
+
+            final_z[0] = 0.0
+            final_z[-1] = 1.0
+            
+            new_n = len(final_x) - 1
+            if new_n != self.bezier.n:
+                self.bezier = Bezierv(n=new_n, controls_x=final_x, controls_z=final_z)
+            else:
+                self.bezier.update_bezierv(np.array(final_x), np.array(final_z))
+            
+            self.controls_source.data = {
+                'x': list(self.bezier.controls_x), 
+                'y': list(self.bezier.controls_z)
+            }
+            self.curve_source.data = self._get_curve_data()
+
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}. Reverting.")
+            self.controls_source.data = dict(old)
+
+        finally:
+            self._is_updating = False
