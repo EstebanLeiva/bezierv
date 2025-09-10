@@ -3,7 +3,7 @@ from bezierv.classes.bezierv import Bezierv
 
 def grad(n: int, 
          m:int, 
-         t: float, 
+         t: np.array, 
          bezierv: Bezierv, 
          controls_z: np.array, 
          emp_cdf_data: np.array) -> np.array:
@@ -38,7 +38,7 @@ def grad(n: int,
         grad_z += 2 * (bezierv.poly_z(t[j], controls_z) - emp_cdf_data[j]) * inner_sum
     return grad_z
     
-def project_z(controls_z: np.array):
+def project_z(controls_z: np.array) -> np.array:
     """
     Project the z control points onto the feasible set.
 
@@ -68,7 +68,7 @@ def fit(n: int,
         bezierv: Bezierv,
         init_x: np.array,
         init_z: np.array,
-        t: float,
+        t: np.array,
         emp_cdf_data: np.array, 
         step_size: float, 
         max_iter: int,
@@ -97,7 +97,7 @@ def fit(n: int,
         Initial guess for the x-coordinates of the control points.
     init_z : np.array
         Initial guess for the z-coordinates of the control points.
-    t : float or np.array
+    t : np.array
         The parameter values corresponding to the data points. Expected to be an array of shape (m,).
     emp_cdf_data : np.array
         The empirical CDF data points used for fitting.
@@ -110,10 +110,11 @@ def fit(n: int,
 
     Returns
     -------
-    Bezierv
-        The updated Bezierv instance with fitted control points.
-    float
-        The mean squared error (MSE) of the fit.
+    tuple[Bezierv, float]
+        A tuple containing:
+        - bezierv (Bezierv): The fitted `Bezierv` object with updated control
+          points.
+        - mse (float): The final mean squared error (MSE) of the fit.
     """
     z = init_z
     for i in range(max_iter):

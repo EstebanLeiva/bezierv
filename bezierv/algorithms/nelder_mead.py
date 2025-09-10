@@ -114,7 +114,7 @@ def fit(n: int,
         init_z: np.array,
         emp_cdf_data: np.array,
         max_iter: int
-        ) -> Bezierv:
+        ) -> tuple[Bezierv, float]:
     """
     Fit the Bezier random variable to the empirical CDF data using the Nelder-Mead optimization algorithm.
 
@@ -134,13 +134,16 @@ def fit(n: int,
         Initial guess for the z-coordinates of the control points.
     emp_cdf_data : np.array
         The empirical CDF data points used for fitting.
+    max_iter : int
+        The maximum number of iterations for the optimization algorithm.
     
     Returns
     -------
-    Bezierv
-        The fitted Bezierv object with updated control points.
-    float
-        The mean squared error (MSE) of the fit.
+    tuple[Bezierv, float]
+        A tuple containing:
+        - bezierv (Bezierv): The fitted `Bezierv` object with updated control
+          points.
+        - mse (float): The final mean squared error (MSE) of the fit.
     """
     start = np.concatenate((init_x, init_z))
     result = minimize(

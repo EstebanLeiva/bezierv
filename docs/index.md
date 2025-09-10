@@ -75,6 +75,32 @@ bz_sum.plot_cdf(data)       # overlays ECDF and Bézier CDF
 
 ---
 
+## Interactive Tool
+The `bezierv` package includes an interactive tool for visualizing and editing a Bézier CDF curve. This tool allows you to manipulate the curve's control points in real-time and see how the distribution's shape changes.
+
+```python
+from bezierv.classes.bezierv import InteractiveBezierv
+from bokeh.plotting import curdoc
+
+# Define the initial control points for the single curve
+initial_controls_x = [0.0, 0.25, 0.75, 1.0]
+initial_controls_z = [0.0, 0.1, 0.9, 1.0]
+
+# Create the manager instance with the initial curve
+manager = InteractiveBezierv(
+    controls_x=initial_controls_x,
+    controls_z=initial_controls_z
+)
+
+# Add the plot layout to the document
+curdoc().add_root(manager.layout)
+curdoc().title = "Interactive Bézier Tool"
+```
+
+Then, run the app from your terminal using the Bokeh server:
+```python
+bokeh serve --show app.py
+```
 ## Next steps
 
 - Browse the **[API reference](reference.md)** for the full class and function docs.
