@@ -7,7 +7,7 @@ from scipy.integrate import quad
 from statsmodels.distributions.empirical_distribution import ECDF
 
 # import arrays for type hinting
-from typing import ArrayLike
+from numpy.typing import ArrayLike
 
 class Bezierv:
     def __init__(self, 
