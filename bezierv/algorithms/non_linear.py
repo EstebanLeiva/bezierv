@@ -13,47 +13,54 @@ def fit(n: int,
         init_t: np.array,
         emp_cdf_data: np.array,
         solver: str) -> Bezierv:
-        """
-        Fit a Bézier random variable to the empirical CDF data using a nonlinear optimization solver.
-        
+        """Fits a Bézier random variable to empirical CDF data.
+
+        This method uses a nonlinear optimization solver to find the optimal
+        Bézier curve control points that best represent the empirical cumulative
+        distribution function (CDF) of the provided data.
+
         Parameters
         ----------
         n : int
-          The number of control points minus one for the Bezier curve.
+            The degree of the Bézier curve (number of control points - 1).
         m : int
-          The number of empirical CDF data points.
-        data : np.array
-          The sorted data points used to fit the Bézier distribution.
+            The number of empirical CDF data points.
+        data : np.ndarray
+            The sorted data points used to fit the Bézier distribution.
         bezierv : Bezierv
-          An instance of the Bezierv class representing the Bézier random variable.
-        init_x : np.array
-          Initial guess for the x-coordinates of the control points.
-        init_z : np.array
-          Initial guess for the z-coordinates of the control points.
-        init_t : np.array
-          Initial guess for the Bézier 'time' parameters corresponding to the data points.
-        emp_cdf_data : np.array
-          The empirical CDF data points used for fitting.
+            An instance of the `Bezierv` class to be fitted.
+        init_x : np.ndarray
+            Initial guess for the x-coordinates of the control points.
+        init_z : np.ndarray
+            Initial guess for the z-coordinates of the control points.
+        init_t : np.ndarray
+            Initial guess for the Bézier 'time' parameters `t` in [0, 1].
+        emp_cdf_data : np.ndarray
+            The empirical CDF values corresponding to the `data` points.
         solver : str, optional
-          The name of the solver to use for optimization.
+            The name of the solver to use for optimization. Defaults to 'ipopt'.
 
         Returns
         -------
-        Bezierv
-            The fitted Bezierv object with updated control points.
-        float
-            The mean squared error (MSE) of the fit.
+        tuple[Bezierv, float]
+            A tuple containing:
+            - bezierv (Bezierv): The fitted `Bezierv` object with updated
+              control points.
+            - mse (float): The final mean squared error (MSE) of the fit.
 
-        Raises:
-        Exception: If the solver fails to find an optimal solution.
+        Raises
+        ------
+        Exception
+            If the optimization solver fails to find a solution.
 
-        Notes:
-        - The method uses the IPOPT solver for optimization.
-        - The control points are constrained to lie within the range of the data.
-        - The method ensures that the control points and the Bézier 'time' parameters are sorted.
-        - Convexity constraints are applied to the control points and the Bézier 'time' parameters.
-        - The first and last control points are fixed to the minimum and maximum of the data, respectively.
-        - The first and last Bézier 'time' parameters are fixed to 0 and 1, respectively.
+        Notes
+        -----
+        The optimization is subject to several constraints to ensure a valid
+        CDF representation:
+        - The control points and 'time' parameters are kept sorted.
+        - Convexity constraints are applied to the control points.
+        - The first and last control points are fixed to the data's range.
+        - The first and last 'time' parameters are fixed to 0 and 1.
         """        
         # Defining the optimization model
         model = pyo.ConcreteModel()

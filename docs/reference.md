@@ -11,6 +11,14 @@
       show_source: false
       members_order: source
 
+::: bezierv.classes.bezierv.InteractiveBezierv
+    handler: python
+    options:
+      heading_level: 4
+      show_root_heading: true
+      show_source: false
+      members_order: source
+
 ### Distribution fitting
 ::: bezierv.classes.distfit.DistFit
     handler: python

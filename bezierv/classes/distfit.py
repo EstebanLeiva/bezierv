@@ -94,7 +94,7 @@ class DistFit:
     def fit(self,
             method: str='projgrad',
             step_size_PG: float=0.001,
-            max_iter_PG: float=1000,
+            max_iter_PG: int=1000,
             threshold_PG: float=1e-3,
             step_size_PS: float=0.001,
             max_iter_PS: int=1000,
@@ -114,8 +114,14 @@ class DistFit:
             The maximum number of iterations for the projected gradient descent method (default is 1000).
         threshold_PG : float, optional
             The convergence threshold for the projected gradient descent method (default is 1e-3).
+        step_size_PS : float, optional
+            The step size for the projected subgradient method (default is 0.001).
+        max_iter_PS : int, optional
+            The maximum number of iterations for the projected subgradient method (default is 1000).
         solver_NL : str, optional
             The solver to use for the nonlinear fitting method (default is 'ipopt').
+        max_iter_NM : int, optional
+            The maximum number of iterations for the Nelder-Mead optimization method (default is 1000).
         
         Returns
         -------
@@ -173,18 +179,6 @@ class DistFit:
     def get_controls_z(self) -> np.array:
         """
         Compute the control points for the z-coordinates of the Bezier curve.
-
-        'quantile' method is used to determine the control points based on the data quantiles.
-
-        Parameters
-        ----------
-        data : np.array
-            The sorted data points.
-
-        Returns
-        -------
-        np.array
-            The control points for the z-coordinates of the Bezier curve.
         """
         controls_z = np.linspace(0, 1, self.n + 1)
         return controls_z
@@ -197,8 +191,8 @@ class DistFit:
 
         Parameters
         ----------
-        data : np.array
-            The sorted data points.
+        method : str
+            The method to use for initializing the x-coordinates of the control points.
 
         Returns
         -------

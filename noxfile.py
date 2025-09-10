@@ -13,6 +13,7 @@ PINNED = {
         "matplotlib>=3.9,<3.11",
         "statsmodels>=0.14.2,<0.15",
         "pyomo>=6.8,<7",
+        "bokeh>=3.4,<4",
     ],
     "3.11": [
         "numpy>=1.26,<2.3",
@@ -20,6 +21,7 @@ PINNED = {
         "matplotlib>=3.9,<3.11",
         "statsmodels>=0.14.2,<0.15",
         "pyomo>=6.8,<7",
+        "bokeh>=3.4,<4",
     ],
     "3.12": [
         "numpy>=2.1,<2.3",
@@ -27,6 +29,7 @@ PINNED = {
         "matplotlib>=3.9,<3.11",
         "statsmodels>=0.14.2,<0.15",
         "pyomo>=6.8,<7",
+        "bokeh>=3.4,<4",
     ],
     "3.13": [
         "numpy>=2.2,<2.4",
@@ -34,6 +37,7 @@ PINNED = {
         "matplotlib>=3.9,<3.11",
         "statsmodels>=0.14.2,<0.15",
         "pyomo>=6.8,<7",
+        "bokeh>=3.4,<4",
     ],
 }
 

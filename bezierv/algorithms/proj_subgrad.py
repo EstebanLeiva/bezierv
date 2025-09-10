@@ -5,7 +5,7 @@ from bezierv.algorithms import utils as utils
 def subgrad(n: int,
             m: int,
             bezierv: Bezierv,
-            t: float, 
+            t: np.array, 
             controls_z: np.array,
             emp_cdf_data: np.array) -> tuple:
     """
@@ -28,8 +28,10 @@ def subgrad(n: int,
 
     Returns
     -------
-    np.array, np.array
-        A tuple containing the subgradient with respect to the x control points and the gradient with respect to the z control points.
+    tuple[np.ndarray, np.ndarray]
+        A tuple containing:
+        - subgrad_x (np.ndarray): Subgradient w.r.t. the x-coordinates.
+        - grad_z (np.ndarray): Gradient w.r.t. the z-coordinates.
     """
     grad_z = np.zeros(n + 1)
     subgrad_x = np.zeros(n + 1)
@@ -52,7 +54,7 @@ def subgrad(n: int,
     return subgrad_x, grad_z
 
 def project_x(data:np.array,
-              controls_x: np.array):
+              controls_x: np.array) -> np.array:
     """
     Project the x control points onto the feasible set.
 
@@ -76,7 +78,7 @@ def project_x(data:np.array,
     x_prime[-1] = data[-1]
     return x_prime
 
-def project_z(controls_z: np.array):
+def project_z(controls_z: np.array) -> np.array:
     """
     Project the z control points onto the feasible set.
 
@@ -104,7 +106,7 @@ def objective_function(m: int,
                        bezierv: Bezierv,
                        emp_cdf_data: np.array,
                        z: np.array, 
-                       t: np.array):
+                       t: np.array) -> float:
     """
     Compute the objective function value for the given z control points.
 
@@ -134,10 +136,10 @@ def fit(n: int,
         bezierv: Bezierv,
         init_x: np.array,
         init_z: np.array,
-        init_t: float,
+        init_t: np.array,
         emp_cdf_data: np.array, 
         step_size: float,
-        max_iter: int):
+        max_iter: int) -> tuple[Bezierv, float]:
     """
     Fit the Bezier random variable to the empirical CDF data using projected gradient descent.
 
@@ -162,7 +164,7 @@ def fit(n: int,
         Initial control points for the x-coordinates of the Bezier curve.
     init_z : np.array
         Initial control points for the z-coordinates of the Bezier curve.
-    init_t : float
+    init_t : np.array
         Initial parameter values corresponding to the data points.
     emp_cdf_data : np.array
         The empirical cumulative distribution function (CDF) data derived from the empirical data.
@@ -173,10 +175,11 @@ def fit(n: int,
 
     Returns
     -------
-    Bezierv
-        The updated Bezierv instance with fitted control points.
-    float
-        The mean squared error (MSE) of the fit.
+    tuple[Bezierv, float]
+        A tuple containing:
+        - bezierv (Bezierv): The fitted `Bezierv` object with updated control
+          points.
+        - mse (float): The final mean squared error (MSE) of the fit.
     """
     f_best = np.inf
     x_best = None

@@ -6,13 +6,14 @@ from scipy.optimize import brentq, bisect
 from scipy.integrate import quad
 from statsmodels.distributions.empirical_distribution import ECDF
 
-from numpy import tanh, arctanh
+# import arrays for type hinting
+from typing import ArrayLike
 
 class Bezierv:
     def __init__(self, 
                  n: int, 
-                 controls_x=None, 
-                 controls_z=None):
+                 controls_x: ArrayLike=None, 
+                 controls_z: ArrayLike=None):
         """
         Initialize a Bezierv instance representing a Bezier random variable.
 
@@ -117,14 +118,6 @@ class Bezierv:
     def combinations(self):
         """
         Compute and store binomial coefficients.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
         """
         n = self.n
         for i in range(0, n + 1):
@@ -135,21 +128,13 @@ class Bezierv:
     def deltas(self):
         """
         Compute the differences between consecutive control points.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
         """
         n = self.n
         for i in range(n):
             self.deltas_x[i] = self.controls_x[i + 1] - self.controls_x[i]
             self.deltas_z[i] = self.controls_z[i + 1] - self.controls_z[i]
 
-    def bernstein(self, t, i, combinations, n):
+    def bernstein(self, t: float, i: int, combinations: np.array, n: int) -> float:
         """
         Compute the Bernstein basis polynomial value.
 
@@ -159,7 +144,7 @@ class Bezierv:
             The parameter value (in the interval [0, 1]).
         i : int
             The index of the Bernstein basis polynomial.
-        combinations : array-like
+        combinations : np.array
             An array of binomial coefficients to use in the computation.
         n : int
             The degree for the Bernstein polynomial.
@@ -171,7 +156,7 @@ class Bezierv:
         """
         return combinations[i] * t**i * (1 - t)**(n - i)
 
-    def poly_x(self, t, controls_x = None):
+    def poly_x(self, t: float, controls_x: np.array = None) -> float:
         """
         Evaluate the x-coordinate at a given t value.
 
@@ -195,8 +180,8 @@ class Bezierv:
         for i in range(n + 1):
            p_x  += self.bernstein(t, i, self.comb, self.n) * controls_x[i]
         return p_x
-    
-    def poly_z(self, t, controls_z = None):
+
+    def poly_z(self, t: float, controls_z: np.array = None) -> float:
         """
         Evaluate the z-coordinate at a given t value.
 
@@ -204,7 +189,7 @@ class Bezierv:
         ----------
         t : float
             The parameter value at which to evaluate the curve (typically in [0, 1]).
-        controls_z : array-like, optional
+        controls_z : np.array, optional
             An array of control points for the z-coordinate. Defaults to self.controls_z.
 
         Returns
@@ -220,8 +205,8 @@ class Bezierv:
         for i in range(n + 1):
            p_z  += self.bernstein(t, i, self.comb, self.n) * controls_z[i]
         return p_z
-    
-    def root_find(self, x, method='brentq'):
+
+    def root_find(self, x: float, method: str = 'brentq') -> float:
         """
         Find t such that the Bezier curve's x-coordinate equals a given value.
 
@@ -249,7 +234,7 @@ class Bezierv:
             t = bisect(poly_x_zero, 0, 1, args=(x,))
         return t
 
-    def eval_t(self, t):
+    def eval_t(self, t: float) -> tuple[float, float]:
         """
         Evaluate the CDF of the Bezier random variable at a given parameter value t.
 
@@ -260,8 +245,8 @@ class Bezierv:
 
         Returns
         -------
-        tuple of floats
-            A tuple (p_x, p_z) where p_x is the evaluated x-coordinate and p_z is the evaluated z-coordinate.
+        tuple[float, float]
+            A tuple containing the (x, z) coordinates of the point on the curve w.r.t. t.
         """
         self._ensure_initialized()
         n = self.n
@@ -271,8 +256,8 @@ class Bezierv:
             p_x += self.comb[i] * t**i * (1 - t)**(n - i) * self.controls_x[i]
             p_z += self.comb[i] * t**i * (1 - t)**(n - i) * self.controls_z[i]
         return p_x, p_z
-    
-    def eval_x(self, x):
+
+    def eval_x(self, x: float) -> tuple[float, float]:
         """
         Evaluate the CDF of the Bezier random variable at a given x-coordinate.
 
@@ -283,14 +268,14 @@ class Bezierv:
 
         Returns
         -------
-        tuple of floats
-            A tuple (p_x, p_z) where p_x is the x-coordinate and p_z is the z-coordinate of the curve at x.
+        tuple[float, float]
+            A tuple containing the (x, z) coordinates of the point on the curve w.r.t. x.
         """
         self._ensure_initialized()
         t = self.root_find(x)
         return self.eval_t(t)
-    
-    def cdf_x(self, x):
+
+    def cdf_x(self, x: float) -> float:
         """
         Compute the cumulative distribution function (CDF) at a given x-coordinate.
 
@@ -312,7 +297,7 @@ class Bezierv:
         _, p_z = self.eval_x(x)
         return p_z
 
-    def quantile(self, alpha, method='brentq'):
+    def quantile(self, alpha: float, method: str = 'brentq') -> float:
         """
         Compute the quantile function (inverse CDF) for a given probability level alpha.
 
@@ -335,8 +320,8 @@ class Bezierv:
         elif method == 'bisect':
             t = bisect(cdf_t, 0, 1, args=(alpha,))
         return self.poly_x(t)
-    
-    def pdf_t(self, t):
+
+    def pdf_t(self, t: float) -> float:
         """
         Compute the probability density function (PDF) of the Bezier random variable with respect to t.
 
@@ -359,7 +344,7 @@ class Bezierv:
             pdf_denom_x += self.bernstein(t, i, self.comb_minus, n - 1) * self.deltas_x[i]
         return pdf_num_z/pdf_denom_x
     
-    def pdf_x(self, x):
+    def pdf_x(self, x: float) -> float:
         """
         Compute the probability density function (PDF) of the Bezier random variable at a given x.
 
@@ -376,8 +361,8 @@ class Bezierv:
         self._ensure_initialized()
         t = self.root_find(x)
         return self.pdf_t(t)
-    
-    def pdf_numerator_t(self, t):
+
+    def pdf_numerator_t(self, t: float) -> float:
         """
         Compute the numerator part of the PDF for the Bezier random variable with respect to t.
 
@@ -397,7 +382,7 @@ class Bezierv:
             pdf_num_z += self.bernstein(t, i, self.comb_minus, self.n - 1) * self.deltas_z[i]
         return pdf_num_z
 
-    def get_mean(self, closed_form: bool=True):
+    def get_mean(self, closed_form: bool=True) -> float:
         """
         Compute and return the mean of the distribution.
 
@@ -427,7 +412,12 @@ class Bezierv:
                 self.mean, _ = quad(lambda x: x * self.pdf_x(x), a, b) 
         return self.mean
 
-    def get_variance(self):
+    def get_variance(self) -> float:
+        """Compute and return the variance of the distribution.
+
+        Returns:
+            float: The variance value of the distribution.
+        """
         self._ensure_initialized()
         a, b = self.bounds
         E_x2, _ = quad(lambda x: (x)**2 * self.pdf_x(x), a, b)
@@ -436,6 +426,8 @@ class Bezierv:
         else:
             self.variance = E_x2 - self.mean**2
         return self.variance
+    
+    #TODO: implement skewness and kurtosis
     
     def random(self, 
                n_sims: int,
@@ -471,8 +463,8 @@ class Bezierv:
             samples[i] = self.quantile(u[i])
         return samples
 
-    
-    def plot_cdf(self, data=None, num_points=100, ax=None):
+
+    def plot_cdf(self, data: np.array=None, num_points: int=100, ax: plt.Axes=None):
         """
         Plot the cumulative distribution function (CDF) of the Bezier random variable alongside 
         the empirical CDF (if data is provided).
@@ -485,10 +477,6 @@ class Bezierv:
             The number of points to use in the linspace when data is not provided (default is 100).
         ax : matplotlib.axes.Axes, optional
             The axes on which to plot the CDF. If None, the current axes are used.
-
-        Returns
-        -------
-        None
         """
         self._ensure_initialized()
         data_bool = True
@@ -520,7 +508,7 @@ class Bezierv:
         if show:
             plt.show()
 
-    def plot_pdf(self, data=None, num_points=100, ax=None):
+    def plot_pdf(self, data: np.array=None, num_points: int=100, ax: plt.Axes=None):
         """
         Plot the probability density function (PDF) of the Bezier random variable.
 
@@ -532,10 +520,6 @@ class Bezierv:
             The number of points to use in the linspace when data is not provided (default is 100).
         ax : matplotlib.axes.Axes, optional
             The axes on which to plot the PDF. If None, the current axes are used.
-
-        Returns
-        -------
-        None
         """
         self._ensure_initialized()
         if data is None:
@@ -577,3 +561,169 @@ class Bezierv:
                 "Bezier controls are all zeros (placeholder). "
                 "Provide valid controls in the constructor or call update_bezierv()."
             )
+        
+from bokeh.plotting import figure, curdoc
+from bokeh.models import (ColumnDataSource, PointDrawTool, Button, CustomJS, 
+                          DataTable, TableColumn, NumberFormatter)
+from bokeh.layouts import column, row
+
+class InteractiveBezierv:
+    """Manages an interactive Bezier distribution in a Bokeh plot."""
+    
+    def __init__(self, controls_x, controls_z):
+        self._is_updating = False
+
+        n = len(controls_x) - 1
+        self.bezier = Bezierv(n=n, controls_x=controls_x, controls_z=controls_z)
+
+        self.controls_source = ColumnDataSource(data=self._get_controls_data())
+        self.curve_source = ColumnDataSource(data=self._get_curve_data())
+        
+        self.plot = figure(
+            height=600, width=900,
+            title="Interactive Bézier CDF Editor",
+            x_axis_label="x", y_axis_label="CDF",
+            y_range=(-0.05, 1.05)
+        )
+        
+        self.plot.line(x='x', y='y', source=self.curve_source, line_width=3, legend_label="Bézier CDF", color="navy")
+        self.plot.line(x='x', y='y', source=self.controls_source, line_dash="dashed", color="gray")
+        
+        controls_renderer = self.plot.scatter(
+            x='x', y='y', source=self.controls_source, size=12,
+            legend_label="Control Points", color="firebrick"
+        )
+        self.plot.legend.location = "top_left"
+
+        draw_tool = PointDrawTool(renderers=[controls_renderer])
+        self.plot.add_tools(draw_tool)
+        self.plot.toolbar.active_tap = draw_tool
+
+        formatter = NumberFormatter(format="0.000")
+        columns = [
+            TableColumn(field="x", title="X", formatter=formatter),
+            TableColumn(field="y", title="Z", formatter=formatter)
+        ]
+        
+        self.data_table = DataTable(
+            source=self.controls_source,
+            columns=columns, 
+            width=250, 
+            height=600, 
+            editable=True
+        )
+
+        self.download_button = Button(
+            label="Download Control Points as CSV", 
+            button_type="success", 
+            width=250
+        )
+
+        callback = CustomJS(args=dict(source=self.controls_source), code="""
+            const data = source.data;
+            const file_name = 'control_points.csv';
+            let csv_content = 'X,Z_CDF\\n'; // CSV Header
+
+            // Iterate over the data and build the CSV string
+            for (let i = 0; i < data.x.length; i++) {
+                const row = [data.x[i], data.y[i]];
+                csv_content += row.join(',') + '\\n';
+            }
+
+            // Create a Blob and trigger the download
+            const blob = new Blob([csv_content], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = file_name;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        """)
+        
+        self.download_button.js_on_click(callback)
+
+        self.controls_source.on_change('data', self._update_callback)
+
+        widgets_layout = column(self.plot, self.download_button)
+        self.layout = row(widgets_layout, self.data_table)
+
+    def _get_controls_data(self):
+        """Returns the current control points from the Bezierv instance."""
+        return {'x': self.bezier.controls_x, 'y': self.bezier.controls_z}
+
+    def _get_curve_data(self, num_points=200):
+        """Calculates and returns the CDF curve points."""
+        t = np.linspace(0, 1, num_points)
+        curve_x = [self.bezier.poly_x(ti) for ti in t]
+        curve_z = [self.bezier.poly_z(ti) for ti in t]
+        return {'x': curve_x, 'y': curve_z}
+
+    def _update_callback(self, attr, old, new):
+        """Handles moving, adding, and deleting control points."""
+        
+        if self._is_updating:
+            return
+
+        try:
+            self._is_updating = True
+
+            new_x = new['x']
+            new_z = new['y']
+
+            is_point_added = len(new_x) > len(old['x'])
+            
+            if is_point_added:
+                old_points_sorted = sorted(zip(old['x'], old['y']))
+                
+                if len(old_points_sorted) < 2:
+                    raise ValueError("Cannot add a point, need at least 2 existing points.")
+
+                mid_index = len(old_points_sorted) // 2
+
+                p_before = old_points_sorted[mid_index - 1]
+                p_after = old_points_sorted[mid_index]
+
+                x_new = (p_before[0] + p_after[0]) / 2.0
+                y_new = (p_before[1] + p_after[1]) / 2.0
+                
+                final_points = old_points_sorted
+                final_points.insert(mid_index, (x_new, y_new))
+                
+                final_x, final_z = zip(*final_points)
+                final_x, final_z = list(final_x), list(final_z)
+            
+            else:
+                sorted_points = sorted(zip(new_x, new_z))
+                if not sorted_points:
+                    final_x, final_z = [], []
+                else:
+                    final_x, final_z = zip(*sorted_points)
+                    final_x, final_z = list(final_x), list(final_z)
+
+                if final_z != sorted(final_z):
+                    raise ValueError("Control points' y-values must be in non-decreasing order.")
+
+            if len(final_x) < 2:
+                raise ValueError("At least two control points are required.")
+
+            final_z[0] = 0.0
+            final_z[-1] = 1.0
+            
+            new_n = len(final_x) - 1
+            if new_n != self.bezier.n:
+                self.bezier = Bezierv(n=new_n, controls_x=final_x, controls_z=final_z)
+            else:
+                self.bezier.update_bezierv(np.array(final_x), np.array(final_z))
+            
+            self.controls_source.data = {
+                'x': list(self.bezier.controls_x), 
+                'y': list(self.bezier.controls_z)
+            }
+            self.curve_source.data = self._get_curve_data()
+
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}. Reverting.")
+            self.controls_source.data = dict(old)
+
+        finally:
+            self._is_updating = False
