@@ -579,8 +579,9 @@ class InteractiveBezierv:
         self.controls_source = ColumnDataSource(data=self._get_controls_data())
         self.curve_source = ColumnDataSource(data=self._get_curve_data())
         
+        # Create CDF plot
         self.plot = figure(
-            height=600, width=900,
+            height=400, width=900,
             title="Interactive Bézier CDF Editor",
             x_axis_label="x", y_axis_label="CDF",
             y_range=(-0.05, 1.05)
@@ -599,6 +600,16 @@ class InteractiveBezierv:
         self.plot.add_tools(draw_tool)
         self.plot.toolbar.active_tap = draw_tool
 
+        # Create PDF plot below CDF
+        self.pdf_plot = figure(
+            height=300, width=900,
+            title="Bézier PDF",
+            x_axis_label="x", y_axis_label="PDF"
+        )
+        
+        self.pdf_plot.line(x='x', y='pdf', source=self.curve_source, line_width=3, legend_label="Bézier PDF", color="green")
+        self.pdf_plot.legend.location = "top_right"
+
         formatter = NumberFormatter(format="0.000")
         columns = [
             TableColumn(field="x", title="X", formatter=formatter),
@@ -609,7 +620,7 @@ class InteractiveBezierv:
             source=self.controls_source,
             columns=columns, 
             width=250, 
-            height=600, 
+            height=700, 
             editable=True
         )
 
@@ -644,7 +655,9 @@ class InteractiveBezierv:
 
         self.controls_source.on_change('data', self._update_callback)
 
-        widgets_layout = column(self.plot, self.download_button)
+        # Create layout with CDF and PDF plots stacked vertically
+        plots_layout = column(self.plot, self.pdf_plot)
+        widgets_layout = column(plots_layout, self.download_button)
         self.layout = row(widgets_layout, self.data_table)
 
     def _get_controls_data(self):
@@ -656,7 +669,8 @@ class InteractiveBezierv:
         t = np.linspace(0, 1, num_points)
         curve_x = [self.bezier.poly_x(ti) for ti in t]
         curve_z = [self.bezier.poly_z(ti) for ti in t]
-        return {'x': curve_x, 'y': curve_z}
+        curve_pdf = [self.bezier.pdf_t(ti) for ti in t]
+        return {'x': curve_x, 'y': curve_z, 'pdf': curve_pdf}
 
     def _update_callback(self, attr, old, new):
         """Handles moving, adding, and deleting control points."""

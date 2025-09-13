@@ -32,7 +32,7 @@ class Convolver:
                  rng: np.random.Generator | int | None = None,
                  **kwargs) -> Bezierv:
         """
-        Convolve the Bezier RVs via Monte Carlo and fit a Bezierv to the sum.
+        Convolve the Bezier RVs via Monte Carlo or numerical integration and fit a Bezierv to the sum.
 
         Parameters
         ----------
@@ -47,6 +47,7 @@ class Convolver:
                 method, step_size_PG, max_iter_PG, threshold_PG,
                 step_size_PS, max_iter_PS, solver_NL, max_iter_NM
         """
+        
         rng = np.random.default_rng(rng)
 
         bezierv_sum = np.zeros(n_sims)
@@ -72,3 +73,41 @@ class Convolver:
         fitter = DistFit(bezierv_sum, **init_kwargs)
         bezierv_result, _ = fitter.fit(**fit_kwargs)
         return bezierv_result
+    
+    def exact_cdf_two_bezierv(self, z: float) -> float:
+        """
+        Compute the exact CDF of the convolution Z = X + Y at point z using numerical integration.
+        
+        This implements equation (20) from the paper:
+        F_Z(z) = n_X ∫₀¹ [∑ᵢ₌₀ⁿˣ⁻¹ B_{n_X-1,i}(t_X) · Δz_i^X] [F_Y(y⁻¹(z - x(t_X)))] dt_X
+        
+        Parameters
+        ----------
+        z : float
+            The point at which to evaluate the CDF.
+            
+        Returns
+        -------
+        float
+            The CDF value F_Z(z) at point z.
+        """
+        if len(self.list_bezierv) != 2:
+            raise ValueError("Exact CDF computation is only implemented for two Bezier RVs.")
+        
+        bz_x, bz_y = self.list_bezierv
+        n_x = bz_x.n
+        
+        def integrand(t_x):
+            """
+            The integrand function: [∑ᵢ₌₀ⁿˣ⁻¹ B_{n_X-1,i}(t_X) · Δz_i^X] [F_Y(y⁻¹(z - x(t_X)))]
+            """
+            pdf_numerator = bz_x.pdf_numerator_t(t_x)
+            y_val = z - bz_x.poly_x(t_x)
+            cdf_y = bz_y.cdf_x(y_val)
+            return pdf_numerator * cdf_y
+
+        try:
+            result, _ = quad(integrand, 0, 1)
+            return n_x * result
+        except Exception as e:
+            raise RuntimeError(f"Numerical integration failed for z={z} with error: {e}") from e
