@@ -1,11 +1,43 @@
 site_name: Bezierv Documentation
+site_description: Bézier distributions: flexible distributions using Bézier curves
+site_url: https://estebanleiva.github.io/bezierv/
+repo_url: https://github.com/EstebanLeiva/bezierv
+repo_name: EstebanLeiva/bezierv
 
 theme:
   name: material
   logo: assets/logo.png
   favicon: assets/logo.png
+  palette:
+    - scheme: default
+      primary: blue
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: blue
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - content.code.copy
+    - content.code.annotate
+    - navigation.sections
+    - navigation.tabs
+    - navigation.top
+    - search.highlight
+    - search.suggest
+
+nav:
+  - Home: index.md
+  - Tutorials: tutorials.md
+  - FAQ: faq.md
+  - API Reference: reference.md
 
 plugins:
+  - search
   - mkdocstrings:
       handlers:
         python:
@@ -15,3 +47,53 @@ plugins:
             merge_init_into_class: true
             show_source: false
             members_order: source
+            group_by_category: true
+            show_category_heading: true
+            show_symbol_type_heading: true
+            separate_signature: true
+            show_signature_annotations: true
+            signature_crossrefs: true
+            show_bases: true
+            show_inheritance_diagram: false
+            heading_level: 3
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.arithmatex:
+      generic: true
+  - toc:
+      permalink: true
+      title: "On this page"
+  - def_list
+  - attr_list
+  - md_in_html
+
+extra_javascript:
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/EstebanLeiva/bezierv
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/bezierv/

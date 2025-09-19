@@ -1,106 +1,225 @@
-# Bezierv: A Python Package for Bézier Distributions
+# Bezierv: Flexible Bézier Random Variables
 
-Bezierv provides utilities to **fit, analyze, sample, and convolve** Bézier-based
-random variables from empirical data. It includes multiple fitting algorithms
-(projected gradient, projected subgradient, nonlinear (Pyomo/IPOPT), and Nelder–Mead),
-plus helpers for plotting and Monte Carlo convolution.
+<div align="center">
+  <img src="assets/logo.png" alt="bezierv logo" width="200"/>
+</div>
 
-> **Tip:** See the [API reference](reference.md) for auto-generated docs from the code.
+**bezierv** is a Python package for fitting, analyzing, and sampling from Bézier-based random variables. Bézier random variables can adapt to virtually any continuous distribution shape.
+
+!!! tip "New to Bézier distributions?"
+    Start with our [Quick Start Guide](#quick-start) for a hands-on introduction, or explore the [Interactive Demo](#interactive-visualization) to see Bézier curves in action.
 
 ---
 
-## Quickstart
+## ✨ Key Features
 
-Install your package (editable mode recommended while developing):
+- **🎯 Flexible Fitting**: Adapt to any continuous distribution shape
+- **⚡ Multiple Algorithms**: Choose from 4 optimization methods
+- **🔄 Convolution Support**: Compute sums of random variables exactly or via Monte Carlo  
+- **🎮 Interactive Tools**: Browser-based curve editor with real-time updates
+- **📊 Rich Visualization**: Built-in plotting for CDFs, PDFs, and control points
+- **🔢 Statistical Functions**: Moments, quantiles, sampling, and probability calculations
+
+---
+
+## Quick Start
+
+### Installation
+
+Install bezierv using pip:
 
 ```bash
 pip install bezierv
 ```
 
-Fit a Bézier random variable to data with `DistFit` and sample from it:
+### Basic Example
+
+Fit a Bézier distribution to your data in just a few lines:
 
 ```python
 import numpy as np
 from bezierv.classes.distfit import DistFit
 
-# Synthetic bounded data
-rng = np.random.default_rng(42)
-data = rng.beta(2, 5, 1000)  # replace with your data
+# Generate sample data (replace with your own)
+np.random.seed(42)
+data = np.random.beta(2, 5, 1000)  # Skewed distribution
 
-fitter = DistFit(data, n=5)            # n = degree (n control segments, n+1 control points)
-bz, mse = fitter.fit(method="projgrad")  # or: 'nonlinear', 'projsubgrad', 'neldermead'
-print("MSE:", mse)
+# Fit Bézier distribution
+fitter = DistFit(data, n=5)  # 5 control segments (6 control points)
+bezier_rv, mse = fitter.fit(method="projgrad")
 
-samples = bz.random(10_000, rng=42)     # draw samples via inverse CDF
-q90 = bz.quantile(0.90)                 # 90% quantile
-print("90% quantile:", q90)
+print(f"Fit completed with MSE: {mse:.6f}")
+
+# Use the fitted distribution
+samples = bezier_rv.random(100)      # Generate new samples
+mean = bezier_rv.get_mean()            # Compute mean
+q90 = bezier_rv.quantile(0.90)         # 90th percentile
+cdf_val = bezier_rv.cdf_x(0.5)         # P(X ≤ 0.5)
+
+print(f"Mean: {mean:.3f}, 90% quantile: {q90:.3f}")
 ```
 
-Plot empirical vs. fitted CDF (optional):
+### Visualization
+
+Compare your fitted distribution with the empirical data:
 
 ```python
-bz.plot_cdf(data)       # overlays ECDF and Bézier CDF
+import matplotlib.pyplot as plt
+
+# Create side-by-side plots
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+# Plot CDF comparison
+bezier_rv.plot_cdf(data, ax=ax1)
+ax1.set_title("Cumulative Distribution Function")
+
+# Plot PDF
+bezier_rv.plot_pdf(ax=ax2)
+ax2.set_title("Probability Density Function")
+
+plt.tight_layout()
+plt.show()
 ```
 
 ---
 
-## Convolution (sum of independent Bézier RVs)
+## 🎮 Interactive Visualization
 
-Use `Convolver` to approximate the **sum** of several fitted distributions via
-Monte Carlo, then fit another Bézier RV to the result:
-
-```python
-from bezierv.classes.convolver import Convolver
-from bezierv.classes.distfit import DistFit
-
-# Fit two Bezier RVs separately (bz1, bz2) ... then:
-conv = Convolver([bz, bz])          # example: sum with itself
-bz_sum = conv.convolve(n_sims=1_000, rng=123, method="projgrad", n=7)
-```
-
-Plot fitted CDF (optional):
-
-```python
-bz_sum.plot_cdf(data)       # overlays ECDF and Bézier CDF
-```
-
----
-
-## Fitting methods at a glance
-
-- **Projected Gradient (`projgrad`)** – fast and simple; optimizes *z* controls with projection.
-- **Projected Subgradient (`projsubgrad`)** – updates both *x* and *z* with projection.
-- **Nonlinear (`nonlinear`)** – solves a constrained model via Pyomo (e.g., IPOPT).
-- **Nelder–Mead (`neldermead`)** – derivative-free simplex search with penalties.
-
----
-
-## Interactive Tool
-The `bezierv` package includes an interactive tool for visualizing and editing a Bézier CDF curve. This tool allows you to manipulate the curve's control points in real-time and see how the distribution's shape changes.
+Launch an interactive Bézier curve editor to explore how control points affect distribution shape:
 
 ```python
 from bezierv.classes.bezierv import InteractiveBezierv
 from bokeh.plotting import curdoc
 
-# Define the initial control points for the single curve
-initial_controls_x = [0.0, 0.25, 0.75, 1.0]
-initial_controls_z = [0.0, 0.1, 0.9, 1.0]
+# Define initial control points
+controls_x = [0.0, 0.25, 0.75, 1.0]  # X-coordinates (domain)
+controls_z = [0.0, 0.1, 0.9, 1.0]    # Z-coordinates (CDF values)
 
-# Create the manager instance with the initial curve
-manager = InteractiveBezierv(
-    controls_x=initial_controls_x,
-    controls_z=initial_controls_z
-)
+# Create interactive editor
+editor = InteractiveBezierv(controls_x, controls_z)
 
-# Add the plot layout to the document
-curdoc().add_root(manager.layout)
-curdoc().title = "Interactive Bézier Tool"
+# Launch in Bokeh server
+curdoc().add_root(editor.layout)
+curdoc().title = "Bézier Distribution Editor"
 ```
 
-Then, run the app from your terminal using the Bokeh server:
+Save as `bezier_app.py` and run:
+```bash
+bokeh serve --show bezier_app.py
+```
+
+This opens an interactive tool in your browser where you can:
+- ✏️ **Edit control points** by clicking and dragging
+- ➕ **Add/remove points** to change complexity
+- 📊 **View real-time updates** of both CDF and PDF
+- 💾 **Export control points** as CSV
+
+---
+
+## 🔄 Convolution: Sums of Random Variables
+
+### Monte Carlo Convolution (Fast)
+
 ```python
-bokeh serve --show app.py
-```
-## Next steps
+from bezierv.classes.convolver import Convolver
 
-- Browse the **[API reference](reference.md)** for the full class and function docs.
+# Fit two separate distributions
+data1 = np.random.gamma(2, 2, 1000)
+data2 = np.random.exponential(1, 1000)
+
+rv1 = DistFit(data1, n=4).fit()[0]
+rv2 = DistFit(data2, n=4).fit()[0]
+
+# Compute their sum via Monte Carlo
+convolver = Convolver([rv1, rv2])
+sum_rv = convolver.convolve(n_sims=10000, rng=42)
+
+print(f"Sum mean: {sum_rv.get_mean():.3f}")
+```
+
+---
+
+## 🔧 Fitting Algorithms
+
+Choose the best algorithm for your use case:
+
+| Algorithm | Method Call | 
+|-----------|-------------|
+| **Projected Gradient** | `method="projgrad"` | 
+| **Projected Subgradient** | `method="projsubgrad"` | 
+| **Nonlinear Optimization** | `method="nonlinear"` |
+| **Nelder-Mead** | `method="neldermead"` |
+
+### Algorithm Comparison Example
+
+```python
+methods = ["projgrad", "projsubgrad", "nonlinear", "neldermead"]
+results = {}
+
+for method in methods:
+    fitter = DistFit(data, n=5)
+    bz, mse = fitter.fit(method=method, max_iter_PG=1000)
+    results[method] = {"mse": mse, "mean": bz.get_mean()}
+    print(f"{method:12s}: MSE = {mse:.6f}, Mean = {bz.get_mean():.6f}")
+```
+
+---
+
+## 📊 Advanced Examples
+
+### Multi-Modal Distributions
+
+Fit complex, multi-modal distributions:
+
+```python
+# Create bimodal data
+data_bimodal = np.concatenate([
+    np.random.normal(2, 0.5, 500),    # First mode
+    np.random.normal(8, 0.8, 500)     # Second mode
+])
+
+# Use more control points for complex shapes
+fitter = DistFit(data_bimodal, n=10)
+bimodal_rv, mse = fitter.fit(method="nonlinear")
+
+# Visualize the complex fit
+bimodal_rv.plot_pdf()
+```
+
+---
+
+## 🎯 Best Practices
+
+### Choosing the Number of Control Points
+
+- **Simple data**: n=3-5 (few parameters, fast fitting)
+- **Complex shapes**: n=6-10 (more flexibility)  
+- **Multi-modal**: n=8-15 (capture multiple peaks)
+
+!!! warning "Overfitting"
+    More control points ≠ always better. Start simple and increase complexity only if needed.
+
+### Algorithm Selection Guide
+
+1. **Start with `projgrad`** - fastest and works well for most cases
+2. **Try `nonlinear`** if you need highest accuracy and can afford to fail
+
+### Performance Tips
+
+```python
+# For large datasets, consider subsampling for initial fit
+if len(data) > 10000:
+    subset = np.random.choice(data, 5000, replace=False)
+    fitter = DistFit(subset, n=5)
+    quick_fit, _ = fitter.fit(method="projgrad")
+```
+
+---
+
+## 📚 Next Steps
+
+- **[🔧 API Reference](reference.md)** - Complete function documentation
+- **[📖 Tutorials](tutorials.md)** - Step-by-step learning with examples
+- **[🐛 Issues](https://github.com/EstebanLeiva/bezierv/issues)** - Report bugs or request features
+
+---

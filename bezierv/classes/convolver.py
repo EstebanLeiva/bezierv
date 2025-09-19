@@ -141,9 +141,6 @@ class Convolver:
         """
         Compute the exact CDF of the convolution Z = X + Y at point z using numerical integration.
         
-        This implements equation (20) from the paper:
-        F_Z(z) = n_X ∫₀¹ [∑ᵢ₌₀ⁿˣ⁻¹ B_{n_X-1,i}(t_X) · Δz_i^X] [F_Y(y⁻¹(z - x(t_X)))] dt_X
-        
         Parameters
         ----------
         z : float
