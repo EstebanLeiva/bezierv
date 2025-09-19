@@ -12,6 +12,7 @@
   <img alt="Python" src="https://img.shields.io/pypi/pyversions/bezierv?style=flat-square">
   <img alt="License" src="https://img.shields.io/badge/License-MIT-informational?style=flat-square">
   <a href="https://estebanleiva.github.io/bezierv/"><img alt="Docs" src="https://img.shields.io/badge/docs-online-brightgreen?style=flat-square"></a>
+  <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/EstebanLeiva/bezierv/ci.yml?style=flat-square">
 </p>
 
 ---

@@ -1,5 +1,5 @@
 site_name: Bezierv Documentation
-site_description: Bézier distributions: flexible distributions using Bézier curves
+site_description: "Bézier distributions: flexible distributions using Bézier curves"
 site_url: https://estebanleiva.github.io/bezierv/
 repo_url: https://github.com/EstebanLeiva/bezierv
 repo_name: EstebanLeiva/bezierv
