@@ -159,7 +159,7 @@ class Convolver:
         
         def integrand(t_x):
             """
-            The integrand function: [∑ᵢ₌₀ⁿˣ⁻¹ B_{n_X-1,i}(t_X) · Δz_i^X] [F_Y(y⁻¹(z - x(t_X)))]
+            The integrand function: [∑ᵢ₌₀ⁿˣ⁻¹ B_{n_X-1,i}(t_X) · Δz_i^X] [F_Y(z - x(t_X))]
             """
             pdf_numerator = bz_x.pdf_numerator_t(t_x)
             y_val = z - bz_x.poly_x(t_x)
