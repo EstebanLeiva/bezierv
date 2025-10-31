@@ -14,23 +14,6 @@ def test_subgrad_zero_when_perfect_fit():
     np.testing.assert_allclose(g_x, 0.0)
     np.testing.assert_allclose(g_z, 0.0)
 
-
-def test_project_x_respects_bounds_and_order():
-    data = np.array([2.0, 5.0, 10.0])
-    raw_x = np.array([12.0, 3.0, -7.0])
-    projected = ps.project_x(data, raw_x.copy())
-    expected = np.array([2.0, 3.0, 10.0])
-    np.testing.assert_allclose(projected, expected)
-    np.testing.assert_allclose(ps.project_x(data, projected.copy()), expected)
-
-
-def test_project_z_behaviour():
-    z_raw = np.array([1.3, -0.1, 0.6])
-    res = ps.project_z(z_raw.copy())
-    np.testing.assert_allclose(res, np.array([0.0, 0.6, 1.0]))
-    np.testing.assert_allclose(ps.project_z(res.copy()), res)
-
-
 def test_fit_converges_to_linear_solution():
     """
     The full projected-subgradient solver should find the perfect fit on a

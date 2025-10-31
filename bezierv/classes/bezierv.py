@@ -419,15 +419,44 @@ class Bezierv:
             float: The variance value of the distribution.
         """
         self._ensure_initialized()
-        a, b = self.bounds
-        E_x2, _ = quad(lambda x: (x)**2 * self.pdf_x(x), a, b)
-        if self.mean == np.inf:
-            self.variance = E_x2 - self.get_mean()**2
-        else:
-            self.variance = E_x2 - self.mean**2
+        if self.variance == np.inf:
+            a, b = self.support
+            E_x2, _ = quad(lambda x: (x)**2 * self.pdf_x(x), a, b)
+            if self.mean == np.inf:
+                self.variance = E_x2 - self.get_mean()**2
+            else:
+                self.variance = E_x2 - self.mean**2
         return self.variance
     
-    #TODO: implement skewness and kurtosis
+    def get_skewness(self) -> float:
+        """Compute and return the skewness of the distribution.
+
+        Returns:
+            float: The skewness value of the distribution.
+        """
+        self._ensure_initialized()
+        if self.skewness == np.inf:
+            a, b = self.support
+            E_x3, _ = quad(lambda x: (x)**3 * self.pdf_x(x), a, b)
+            mu = self.get_mean()
+            sigma = math.sqrt(self.get_variance())
+            self.skewness = (E_x3 - 3 * mu * sigma**2 - mu**3) / (sigma**3)
+        return self.skewness
+
+    def get_kurtosis(self) -> float:
+        """Compute and return the kurtosis of the distribution.
+
+        Returns:
+            float: The kurtosis value of the distribution.
+        """
+        self._ensure_initialized()
+        if self.kurtosis == np.inf:
+            a, b = self.support
+            E_x4, _ = quad(lambda x: (x)**4 * self.pdf_x(x), a, b)
+            mu = self.get_mean()
+            sigma = math.sqrt(self.get_variance())
+            self.kurtosis = (E_x4 - 4 * mu * (E_x4 - 3 * mu * sigma**2 - mu**3) - 6 * mu**2 * sigma**2 - mu**4) / (sigma**4)
+        return self.kurtosis
     
     def random(self, 
                n_sims: int,

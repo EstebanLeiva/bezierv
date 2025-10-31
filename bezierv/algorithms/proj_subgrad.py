@@ -1,6 +1,7 @@
 import numpy as np
 from bezierv.classes.bezierv import Bezierv
 from bezierv.algorithms import utils as utils
+from bezierv.algorithms.isotonic_reg import project
 
 def subgrad(n: int,
             m: int,
@@ -72,10 +73,7 @@ def project_x(data:np.array,
     np.array
         The projected z control points that satisfy the constraints.
     """
-    x_prime = np.clip(controls_x, a_min= data[0], a_max=data[-1])
-    x_prime.sort()
-    x_prime[0] = data[0]
-    x_prime[-1] = data[-1]
+    x_prime = project(controls_x, lower=data[0], upper=data[-1])
     return x_prime
 
 def project_z(controls_z: np.array) -> np.array:
@@ -96,10 +94,7 @@ def project_z(controls_z: np.array) -> np.array:
     np.array
         The projected z control points that satisfy the constraints.
     """
-    z_prime = np.clip(controls_z, a_min= 0, a_max=1)
-    z_prime.sort()
-    z_prime[0] = 0
-    z_prime[-1] = 1
+    z_prime = project(controls_z, lower=0.0, upper=1.0)
     return z_prime
 
 def objective_function(m: int,

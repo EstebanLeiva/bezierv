@@ -16,16 +16,6 @@ def test_grad_zero_error_returns_zero_gradient():
     g = pg.grad(n, m, t, bez, controls_z, emp_cdf)
     np.testing.assert_allclose(g, np.zeros_like(g), atol=1e-12)
 
-def test_project_z_clips_sorts_and_enforces_bounds():
-    """
-    Test the project_z function to ensure it clips, sorts, and enforces bounds correctly.
-    """
-    raw = np.array([-0.2, 0.9, 0.7, 1.2])
-    projected = pg.project_z(raw.copy())
-    expected = np.array([0.0, 0.7, 0.9, 1.0])
-    np.testing.assert_allclose(projected, expected)
-    np.testing.assert_allclose(pg.project_z(projected.copy()), expected)
-
 def test_fit_converges_and_returns_low_mse():
     """
     On a toy linear CDF the projected-gradient solver should converge

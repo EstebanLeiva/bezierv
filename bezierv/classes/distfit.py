@@ -7,6 +7,7 @@ from bezierv.algorithms import proj_grad as pg
 from bezierv.algorithms import non_linear as nl
 from bezierv.algorithms import nelder_mead as nm
 from bezierv.algorithms import proj_subgrad as ps
+from bezierv.algorithms import isotonic_reg as ir
 from bezierv.algorithms import utils as utils
 
 
