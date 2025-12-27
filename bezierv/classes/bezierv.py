@@ -493,7 +493,7 @@ class Bezierv:
         return samples
 
 
-    def plot_cdf(self, data: np.array=None, num_points: int=100, ax: plt.Axes=None):
+    def plot_cdf(self, data: np.array=None, num_points: int=100, ax: plt.Axes=None, show: bool=True):
         """
         Plot the cumulative distribution function (CDF) of the Bezier random variable alongside 
         the empirical CDF (if data is provided).
@@ -525,7 +525,6 @@ class Bezierv:
         show = False
         if ax is None:
             ax = plt.gca()
-            show = True
 
         if data_bool:
             ecdf_fn = ECDF(data)
@@ -537,7 +536,7 @@ class Bezierv:
         if show:
             plt.show()
 
-    def plot_pdf(self, data: np.array=None, num_points: int=100, ax: plt.Axes=None):
+    def plot_pdf(self, data: np.array=None, num_points: int=100, ax: plt.Axes=None, show: bool=True):
         """
         Plot the probability density function (PDF) of the Bezier random variable.
 
@@ -560,7 +559,6 @@ class Bezierv:
         show = False
         if ax is None:
             ax = plt.gca()
-            show = True
 
         for i in range(len(data)):
             p_x, _ = self.eval_x(data[i])
