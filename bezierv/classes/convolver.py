@@ -2,9 +2,10 @@ import numpy as np
 from scipy.integrate import quad
 from bezierv.classes.distfit import DistFit
 from bezierv.classes.bezierv import Bezierv
+from typing import Any, List
 
 class Convolver:
-    def __init__(self, list_bezierv: list[Bezierv]):
+    def __init__(self, list_bezierv: List[Bezierv]):
         """
         Initialize a ConvBezier instance for convolving Bezier curves.
 
@@ -15,7 +16,7 @@ class Convolver:
 
         Parameters
         ----------
-        list_bezierv : list[Bezierv]
+        list_bezierv : List[Bezierv]
             A list of Bezierv instances representing the Bezier random variables to be convolved.
         """
         for bez in list_bezierv:
@@ -30,7 +31,7 @@ class Convolver:
                  n_sims: int = 1000,
                  *,
                  rng: np.random.Generator | int | None = None,
-                 **kwargs) -> Bezierv:
+                 **kwargs:Any) -> Bezierv:
         """
         Convolve the Bezier RVs via Monte Carlo or numerical integration and fit a Bezierv to the sum.
 
@@ -159,7 +160,7 @@ class Convolver:
         
         def integrand(t_x):
             """
-            The integrand function: [∑ᵢ₌₀ⁿˣ⁻¹ B_{n_X-1,i}(t_X) · Δz_i^X] [F_Y(y⁻¹(z - x(t_X)))]
+            The integrand function: [∑ᵢ₌₀ⁿˣ⁻¹ B_{n_X-1,i}(t_X) · Δz_i^X] [F_Y(z - x(t_X))]
             """
             pdf_numerator = bz_x.pdf_numerator_t(t_x)
             y_val = z - bz_x.poly_x(t_x)

@@ -1,5 +1,6 @@
 import numpy as np
 from bezierv.classes.bezierv import Bezierv
+from bezierv.algorithms.isotonic_reg import project
 
 def grad(n: int, 
          m:int, 
@@ -56,10 +57,7 @@ def project_z(controls_z: np.array) -> np.array:
     np.array
         The projected z control points that satisfy the constraints.
     """
-    z_prime = np.clip(controls_z, a_min= 0, a_max=1)
-    z_prime.sort()
-    z_prime[0] = 0
-    z_prime[-1] = 1
+    z_prime = project(controls_z, lower=0.0, upper=1.0)
     return z_prime
 
 def fit(n: int, 
