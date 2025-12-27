@@ -1,5 +1,5 @@
 site_name: Bezierv Documentation
-site_description: "Bézier distributions: flexible distributions using Bézier curves"
+site_description: "Bézier distributions"
 site_url: https://estebanleiva.github.io/bezierv/
 repo_url: https://github.com/EstebanLeiva/bezierv
 repo_name: EstebanLeiva/bezierv
@@ -68,7 +68,6 @@ markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
-      pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.tabbed:
@@ -88,7 +87,6 @@ markdown_extensions:
   - md_in_html
 
 extra_javascript:
-  - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
 extra:
