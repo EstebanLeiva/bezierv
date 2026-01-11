@@ -522,7 +522,6 @@ class Bezierv:
             x_bezier[i] = p_x
             cdf_x_bezier[i] = p_z
 
-        show = False
         if ax is None:
             ax = plt.gca()
 
@@ -556,7 +555,6 @@ class Bezierv:
         x_bezier = np.zeros(len(data))
         pdf_x_bezier = np.zeros(len(data))
 
-        show = False
         if ax is None:
             ax = plt.gca()
 
