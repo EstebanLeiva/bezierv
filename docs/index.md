@@ -105,12 +105,12 @@ curdoc().title = "Bézier Distribution Editor"
 
 Save as `bezier_app.py` and run:
 ```bash
-bokeh serve --show bezier_app.py
+python -m bokeh serve --show bezier_app.py
 ```
 
 This opens an interactive tool in your browser where you can:
-- ✏️ **Edit control points** by clicking and dragging
-- ➕ **Add/remove points** to change complexity
+- ✏️ **Edit control points** by clicking and dragging with the Point Draw Tool
+- ➕ **Add/remove points** to change complexity (add with a click with the Point Draw Tool, delete with button)
 - 📊 **View real-time updates** of both CDF and PDF
 - 💾 **Export control points** as CSV
 

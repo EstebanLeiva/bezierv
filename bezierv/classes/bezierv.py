@@ -589,7 +589,7 @@ class Bezierv:
         
 from bokeh.plotting import figure, curdoc
 from bokeh.models import (ColumnDataSource, PointDrawTool, Button, CustomJS, 
-                          DataTable, TableColumn, NumberFormatter)
+                          DataTable, TableColumn, NumberFormatter, TapTool)
 from bokeh.layouts import column, row
 
 class InteractiveBezierv:
@@ -621,9 +621,11 @@ class InteractiveBezierv:
         )
         self.plot.legend.location = "top_left"
 
-        draw_tool = PointDrawTool(renderers=[controls_renderer])
+        draw_tool = PointDrawTool(renderers=[controls_renderer], add=True)
         self.plot.add_tools(draw_tool)
+
         self.plot.toolbar.active_tap = draw_tool
+        self.plot.toolbar.active_drag = draw_tool
 
         # Create PDF plot below CDF
         self.pdf_plot = figure(
@@ -655,6 +657,41 @@ class InteractiveBezierv:
             width=250
         )
 
+        def _delete_selected():
+            selected = list(self.controls_source.selected.indices)
+            if not selected:
+                return
+            
+            # Create a copy of current data
+            data = dict(self.controls_source.data)
+            
+            # Filter out selected indices
+            keep = [i for i in range(len(data["x"])) if i not in selected]
+            
+            # If we are deleting too many, stop (prevent going below 2 points)
+            if len(keep) < 2:
+                print("Cannot delete: minimum 2 points required.")
+                return
+
+            new_data = {
+                "x": [data["x"][i] for i in keep],
+                "y": [data["y"][i] for i in keep]
+            }
+            
+            # Update source (this triggers _update_callback)
+            self.controls_source.data = new_data
+            
+            # Clear selection so we don't get stuck selecting non-existent points
+            self.controls_source.selected.indices = []
+
+        self.delete_button = Button(
+            label="Delete Selected Control Point",
+            button_type="danger",
+            width=250
+        )
+
+        self.delete_button.on_click(_delete_selected)
+
         callback = CustomJS(args=dict(source=self.controls_source), code="""
             const data = source.data;
             const file_name = 'control_points.csv';
@@ -681,7 +718,7 @@ class InteractiveBezierv:
         self.controls_source.on_change('data', self._update_callback)
 
         # Create layout with CDF and PDF plots stacked vertically
-        plots_layout = column(self.plot, self.pdf_plot)
+        plots_layout = column(self.plot, self.delete_button, self.pdf_plot)
         widgets_layout = column(plots_layout, self.download_button)
         self.layout = row(widgets_layout, self.data_table)
 
@@ -739,8 +776,11 @@ class InteractiveBezierv:
                     final_x, final_z = zip(*sorted_points)
                     final_x, final_z = list(final_x), list(final_z)
 
-                if final_z != sorted(final_z):
-                    raise ValueError("Control points' y-values must be in non-decreasing order.")
+                    #
+                    final_z = sorted(list(final_z))
+
+                #if final_z != sorted(final_z):
+                #    raise ValueError("Control points' y-values must be in non-decreasing order.")
 
             if len(final_x) < 2:
                 raise ValueError("At least two control points are required.")
