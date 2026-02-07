@@ -61,8 +61,7 @@ def bounded_iso_mean(y, w, a=None, b=None):
     array([2., 2., 2., 4.])
     """
     n = len(y)
-    
-    # -- 1. Handle Defaults & Type Conversions --
+
     y = np.asarray(y, dtype=np.float64)
     w = np.asarray(w, dtype=np.float64)
     
@@ -76,36 +75,25 @@ def bounded_iso_mean(y, w, a=None, b=None):
     else:
         b = np.asarray(b, dtype=np.float64)
 
-    # -- 2. Stack Initialization --
-    # We use Python lists as stacks for O(1) append/pop.
-    # Storing: Weighted Sum (wy), Sum of Weights (w), 
-    #          Max Lower Bound (a), Min Upper Bound (b), Count (n)
     stack_wy = []
     stack_w = []
     stack_a = []
     stack_b = []
     stack_count = []
-    stack_val = [] # The current average value for the block
+    stack_val = []
 
-    # -- 3. Main PAVA Loop --
     for i in range(n):
-        # Current element properties
         curr_wy = y[i] * w[i]
         curr_w = w[i]
         curr_a = a[i]
         curr_b = b[i]
         curr_count = 1
         
-        # Compute initial bounded average for this single element
-        # Logic: raw_avg -> clamp(min=b, max=a)
         raw_val = curr_wy / curr_w
         val = min(raw_val, curr_b)
         val = max(val, curr_a)
         
-        # -- 4. Merge Backwards while Violation Exists --
-        # While previous block >= current block, merge them.
         while stack_val and stack_val[-1] >= val:
-            # Pop the previous block
             prev_wy = stack_wy.pop()
             prev_w = stack_w.pop()
             prev_a = stack_a.pop()
@@ -113,17 +101,13 @@ def bounded_iso_mean(y, w, a=None, b=None):
             prev_count = stack_count.pop()
             stack_val.pop()
             
-            # Merge: Add sums, widen bounds constraints
             curr_wy += prev_wy
             curr_w += prev_w
             curr_count += prev_count
             
-            # The merged block must satisfy ALL constraints of its constituents
             curr_a = max(curr_a, prev_a)
             curr_b = min(curr_b, prev_b)
-            
-            # Recompute average for the merged block
-            # If bounds are invalid (lower > upper), result is NaN (matching original logic)
+
             if curr_a > curr_b:
                 val = np.nan
             else:
@@ -131,7 +115,6 @@ def bounded_iso_mean(y, w, a=None, b=None):
                 val = min(raw_val, curr_b)
                 val = max(val, curr_a)
 
-        # Push the (possibly merged) block onto the stack
         stack_wy.append(curr_wy)
         stack_w.append(curr_w)
         stack_a.append(curr_a)
@@ -139,8 +122,6 @@ def bounded_iso_mean(y, w, a=None, b=None):
         stack_count.append(curr_count)
         stack_val.append(val)
 
-    # -- 5. Reconstruct Result Array --
-    # Expand the stack blocks back into the full array size
     result = np.empty(n, dtype=np.float64)
     cursor = 0
     for val, count in zip(stack_val, stack_count):
