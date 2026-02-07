@@ -1,86 +1,134 @@
 import numpy as np
 
-def MA(g, w, A, a, b):
-    """
-    Computes the bounded weighted average M(A) as defined in 
-    Barlow, Bartholomew, Bremner & Brunk (1972), p. 57.
-    
-    This is a direct Python translation of your R 'MA' function.
-    
-    Args:
-        g (np.ndarray): Data points (called 'y' in the main function).
-        w (np.ndarray): Corresponding weights.
-        A (list or np.ndarray): A list of 0-based indices for the subset.
-        a (np.ndarray): Vector of lower bounds.
-        b (np.ndarray): Vector of upper bounds.
-        
-    Returns:
-        float: The bounded weighted average, or np.nan if bounds are invalid.
-    """
-    a_up = np.nanmax(a[A])
-    b_low = np.nanmin(b[A])
-    res = np.nan
-    
-    if a_up <= b_low:
-        weighted_avg = np.sum(g[A] * w[A]) / np.sum(w[A])
-        clamped_avg = np.minimum(weighted_avg, b_low)
-        res = np.maximum(clamped_avg, a_up)
-        
-    return res
-
 def bounded_iso_mean(y, w, a=None, b=None):
     """
-    Pool-adjacent-violaters-algorithm (PAVA) for a weighted isotonic
-    mean, bounded by a lower bound 'a' and an upper bound 'b'.
+    Compute the bounded isotonic mean using a stack-based Pool Adjacent Violators Algorithm (PAVA).
     
-    This is a Python translation of the R function 'BoundedIsoMean'.
+    This is an O(N) implementation that computes the weighted isotonic regression of y with respect 
+    to weights w, subject to element-wise lower bounds a and upper bounds b. The algorithm uses a 
+    stack-based approach to merge adjacent blocks that violate the isotonicity constraint (i.e., 
+    when a previous block's value is greater than or equal to the current block's value).
     
-    Args:
-        y (np.ndarray): Data points (1D array).
-        w (np.ndarray): Corresponding weights (1D array).
-        a (np.ndarray, optional): Vector of lower bounds. Defaults to -Inf.
-        b (np.ndarray, optional): Vector of upper bounds. Defaults to +Inf.
-        
-    Returns:
-        np.ndarray: The bounded isotonic mean vector.
+    The isotonic regression finds the best monotonically non-decreasing approximation to the input 
+    data by minimizing the weighted squared error, while respecting the provided bounds on each element.
+    
+    Parameters
+    ----------
+    y : array_like
+        Input values to be fitted. Expected to be a 1D array of length n.
+    w : array_like
+        Weights for each element in y. Must have the same length as y. Weights should be positive.
+    a : array_like, optional
+        Lower bounds for each element. If None, defaults to -infinity for all elements.
+        Must have the same length as y if provided.
+    b : array_like, optional
+        Upper bounds for each element. If None, defaults to +infinity for all elements.
+        Must have the same length as y if provided.
+    
+    Returns
+    -------
+    np.ndarray
+        The bounded isotonic regression result as a 1D array of length n. The output is 
+        monotonically non-decreasing and each element satisfies a[i] <= result[i] <= b[i].
+        If bounds are invalid (a[i] > b[i]) for any merged block, that block's value is NaN.
+    
+    Notes
+    -----
+    The algorithm uses a stack-based PAVA approach that maintains O(1) incremental updates. 
+    Each block on the stack stores:
+    - Weighted sum (wy)
+    - Sum of weights (w)
+    - Maximum lower bound (a) across merged elements
+    - Minimum upper bound (b) across merged elements
+    - Count of original elements in the block
+    - Current bounded average value
+    
+    When merging blocks, the bounds are combined by taking the maximum of lower bounds and
+    the minimum of upper bounds to ensure all constraints are satisfied.
+    
+    Examples
+    --------
+    >>> y = np.array([3.0, 1.0, 2.0, 4.0])
+    >>> w = np.ones(4)
+    >>> bounded_iso_mean(y, w)
+    array([2., 2., 2., 4.])
+    
+    >>> y = np.array([3.0, 1.0, 2.0, 4.0])
+    >>> w = np.ones(4)
+    >>> a = np.array([0.0, 0.0, 0.0, 0.0])
+    >>> b = np.array([5.0, 5.0, 5.0, 5.0])
+    >>> bounded_iso_mean(y, w, a, b)
+    array([2., 2., 2., 4.])
     """
     n = len(y)
+
+    y = np.asarray(y, dtype=np.float64)
+    w = np.asarray(w, dtype=np.float64)
     
     if a is None:
         a = np.full(n, -np.inf)
+    else:
+        a = np.asarray(a, dtype=np.float64)
+        
     if b is None:
-        b = -a
+        b = np.full(n, np.inf)
+    else:
+        b = np.asarray(b, dtype=np.float64)
 
-    y = np.asarray(y)
-    w = np.asarray(w)
-    a = np.asarray(a)
-    b = np.asarray(b)
-    k = np.zeros(n, dtype=int)
-    ghat = np.zeros(n)
-    c = 0
-    k[0] = 0
-    ghat[0] = MA(g=y, w=w, A=[0], a=a, b=b)
+    stack_wy = []
+    stack_w = []
+    stack_a = []
+    stack_b = []
+    stack_count = []
+    stack_val = []
 
-    for j in range(1, n):
-        c += 1
-        k[c] = j
-        ghat[c] = MA(g=y, w=w, A=[j], a=a, b=b)
+    for i in range(n):
+        curr_wy = y[i] * w[i]
+        curr_w = w[i]
+        curr_a = a[i]
+        curr_b = b[i]
+        curr_count = 1
+        
+        raw_val = curr_wy / curr_w
+        val = min(raw_val, curr_b)
+        val = max(val, curr_a)
+        
+        while stack_val and stack_val[-1] >= val:
+            prev_wy = stack_wy.pop()
+            prev_w = stack_w.pop()
+            prev_a = stack_a.pop()
+            prev_b = stack_b.pop()
+            prev_count = stack_count.pop()
+            stack_val.pop()
+            
+            curr_wy += prev_wy
+            curr_w += prev_w
+            curr_count += prev_count
+            
+            curr_a = max(curr_a, prev_a)
+            curr_b = min(curr_b, prev_b)
 
-        while (c >= 1) and (ghat[c - 1] >= ghat[c]):
-            start_idx = k[c - 1]
-            end_idx = j
-            A_indices = list(range(start_idx, end_idx + 1))
-            ghat[c - 1] = MA(g=y, w=w, A=A_indices, a=a, b=b)
-            c -= 1
-    current_n_index = n - 1 
-    while (current_n_index >= 0):
-        start_idx = k[c]
-        val_to_fill = ghat[c]
-        ghat[start_idx : current_n_index + 1] = val_to_fill
-        current_n_index = k[c] - 1
-        c -= 1
+            if curr_a > curr_b:
+                val = np.nan
+            else:
+                raw_val = curr_wy / curr_w
+                val = min(raw_val, curr_b)
+                val = max(val, curr_a)
 
-    return ghat
+        stack_wy.append(curr_wy)
+        stack_w.append(curr_w)
+        stack_a.append(curr_a)
+        stack_b.append(curr_b)
+        stack_count.append(curr_count)
+        stack_val.append(val)
+
+    result = np.empty(n, dtype=np.float64)
+    cursor = 0
+    for val, count in zip(stack_val, stack_count):
+        result[cursor : cursor + count] = val
+        cursor += count
+        
+    return result
 
 def project(controls: np.array, lower: float, upper: float) -> np.array:
     n = len(controls)

@@ -148,8 +148,6 @@ def fit(n: int,
         #    t[m] = 1;
         model.last_t = pyo.Constraint(expr=model.t[m] == 1)
 
-        delta_z = 0.0001
-        delta_x = 0.5
         # Left end: x1 ~= x0, z1 ~= z0
         #model.end_close_z_left  = pyo.Constraint(expr = model.z[1] - model.z[0] <= delta_z)
         #model.end_close_x_left  = pyo.Constraint(expr = model.x[1] - model.x[0] <= delta_x)
