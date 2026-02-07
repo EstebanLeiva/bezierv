@@ -6,8 +6,6 @@ from statsmodels.distributions.empirical_distribution import ECDF
 from bezierv.algorithms import proj_grad as pg
 from bezierv.algorithms import non_linear as nl
 from bezierv.algorithms import nelder_mead as nm
-from bezierv.algorithms import proj_subgrad as ps
-from bezierv.algorithms import isotonic_reg as ir
 from bezierv.algorithms import utils as utils
 
 
@@ -97,8 +95,6 @@ class DistFit:
             step_size_PG: float=0.001,
             max_iter_PG: int=1000,
             threshold_PG: float=1e-3,
-            step_size_PS: float=0.001,
-            max_iter_PS: int=1000,
             solver_NL: str='ipopt',
             max_iter_NM: int=1000) -> Bezierv:
         """
@@ -107,7 +103,7 @@ class DistFit:
         Parameters
         ----------
         method : str, optional
-            The fitting method to use. Options are 'projgrad', 'nonlinear', 'projsubgrad', or 'neldermead'.
+            The fitting method to use. Options are 'projgrad', 'nonlinear', or 'neldermead'.
             Default is 'projgrad'.
         step_size_PG : float, optional
             The step size for the projected gradient descent method (default is 0.001).
@@ -115,10 +111,6 @@ class DistFit:
             The maximum number of iterations for the projected gradient descent method (default is 1000).
         threshold_PG : float, optional
             The convergence threshold for the projected gradient descent method (default is 1e-3).
-        step_size_PS : float, optional
-            The step size for the projected subgradient method (default is 0.001).
-        max_iter_PS : int, optional
-            The maximum number of iterations for the projected subgradient method (default is 1000).
         solver_NL : str, optional
             The solver to use for the nonlinear fitting method (default is 'ipopt').
         max_iter_NM : int, optional
@@ -161,17 +153,6 @@ class DistFit:
                                             self.init_z,
                                             self.emp_cdf_data,
                                             max_iter_NM)
-        elif method == 'projsubgrad':
-            self.bezierv, self.mse = ps.fit(self.n,
-                                            self.m,
-                                            self.data,
-                                            self.bezierv,
-                                            self.init_x,
-                                            self.init_z,
-                                            self.init_t,
-                                            self.emp_cdf_data,
-                                            step_size_PS,
-                                            max_iter_PS)
         else:
             raise ValueError("Method not recognized. Use 'projgrad', 'nonlinear', or 'neldermead'.")
 

@@ -46,7 +46,7 @@ class Convolver:
                 n, init_x, init_z, init_t, emp_cdf_data, method_init_x
             Fit options for DistFit.fit(...):
                 method, step_size_PG, max_iter_PG, threshold_PG,
-                step_size_PS, max_iter_PS, solver_NL, max_iter_NM
+                solver_NL, max_iter_NM
         """
         
         rng = np.random.default_rng(rng)
@@ -61,7 +61,7 @@ class Convolver:
         }
         fit_keys = {
             "method", "step_size_PG", "max_iter_PG", "threshold_PG",
-            "step_size_PS", "max_iter_PS", "solver_NL", "max_iter_NM"
+            "solver_NL", "max_iter_NM"
         }
 
         init_kwargs = {k: v for k, v in kwargs.items() if k in init_keys}
@@ -93,7 +93,7 @@ class Convolver:
                 n, init_x, init_z, init_t, emp_cdf_data, method_init_x
             Fit options for DistFit.fit(...):
                 method, step_size_PG, max_iter_PG, threshold_PG,
-                step_size_PS, max_iter_PS, solver_NL, max_iter_NM
+                solver_NL, max_iter_NM
                 
         Returns
         -------
@@ -124,7 +124,7 @@ class Convolver:
         }
         fit_keys = {
             "method", "step_size_PG", "max_iter_PG", "threshold_PG",
-            "step_size_PS", "max_iter_PS", "solver_NL", "max_iter_NM"
+            "solver_NL", "max_iter_NM"
         }
         
         init_kwargs = {k: v for k, v in kwargs.items() if k in init_keys}

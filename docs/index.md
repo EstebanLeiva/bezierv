@@ -146,14 +146,13 @@ Choose the best algorithm for your use case:
 | Algorithm | Method Call | 
 |-----------|-------------|
 | **Projected Gradient** | `method="projgrad"` | 
-| **Projected Subgradient** | `method="projsubgrad"` | 
 | **Nonlinear Optimization** | `method="nonlinear"` |
 | **Nelder-Mead** | `method="neldermead"` |
 
 ### Algorithm Comparison Example
 
 ```python
-methods = ["projgrad", "projsubgrad", "nonlinear", "neldermead"]
+methods = ["projgrad", "nonlinear", "neldermead"]
 results = {}
 
 for method in methods:

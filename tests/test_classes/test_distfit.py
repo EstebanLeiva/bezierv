@@ -17,14 +17,13 @@ def test_uniform_initial_x(normal_data):
     [
         ("projgrad", 1e-2),
         #("nonlinear", 1e-2),
-        ("neldermead", 1e-2),
-        ("projsubgrad", 1e-2),
+        ("neldermead", 1e-2)
     ],
 )
 
 def test_fit_dispatch_and_mse(normal_data, method, target_mse):
     df = DistFit(normal_data, n=3)
-    bez, mse = df.fit(method=method, max_iter_PS = 100, max_iter_PG=100)
+    bez, mse = df.fit(method=method, max_iter_PG = 100)
     assert mse <= target_mse
 
 def test_bad_method_raises(normal_data):
