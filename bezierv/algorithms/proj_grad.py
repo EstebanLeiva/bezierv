@@ -67,7 +67,6 @@ def fit(n: int,
     """
 
     B = compute_bernstein_basis(n, t, bezierv)
-    
     z = init_z.copy()
     
     for i in range(max_iter):

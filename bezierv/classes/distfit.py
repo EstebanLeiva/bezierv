@@ -7,6 +7,7 @@ from bezierv.algorithms import proj_grad as pg
 from bezierv.algorithms import non_linear as nl
 from bezierv.algorithms import nelder_mead as nm
 from bezierv.algorithms import utils as utils
+from bezierv.algorithms import interior_point as ipm
 
 
 class DistFit:
@@ -91,7 +92,8 @@ class DistFit:
             self.emp_cdf_data = emp_cdf_data
 
     def fit(self,
-            method: str='projgrad',
+            method: str='mse',
+            algorithm: str='projgrad',
             step_size_PG: float=0.001,
             max_iter_PG: int=1000,
             threshold_PG: float=1e-3,
@@ -103,7 +105,9 @@ class DistFit:
         Parameters
         ----------
         method : str, optional
-            The fitting method to use. Options are 'projgrad', 'nonlinear', or 'neldermead'.
+            The fitting method to use. Options are 'mse' for mean squared error or 'mle' for maximum likelihood estimation (default is 'mse').
+        algorithm : str, optional
+            The fitting algorithm to use. Options are 'projgrad', 'nonlinear', or 'neldermead'.
             Default is 'projgrad'.
         step_size_PG : float, optional
             The step size for the projected gradient descent method (default is 0.001).
@@ -121,20 +125,23 @@ class DistFit:
         Bezierv
             The fitted Bezierv instance with updated control points.
         """
-        if method == 'projgrad':
-            self.bezierv, self.mse = pg.fit(self.n, 
-                                            self.m, 
-                                            self.data, 
-                                            self.bezierv, 
-                                            self.init_x, 
-                                            self.init_z, 
-                                            self.init_t,
-                                            self.emp_cdf_data, 
-                                            step_size_PG, 
-                                            max_iter_PG, 
-                                            threshold_PG)
-        elif method == 'nonlinear':
-            self.bezierv, self.mse = nl.fit(self.n,
+        if method == 'mse':
+            if algorithm == 'projgrad':
+                self.bezierv, self.mse = pg.fit(
+                                                self.n, 
+                                                self.m, 
+                                                self.data, 
+                                                self.bezierv, 
+                                                self.init_x, 
+                                                self.init_z, 
+                                                self.init_t,
+                                                self.emp_cdf_data, 
+                                                step_size_PG, 
+                                                max_iter_PG, 
+                                                threshold_PG)
+            elif algorithm == 'nonlinear':
+                self.bezierv, self.mse = nl.fit(
+                                                self.n,
                                                 self.m,
                                                 self.data,
                                                 self.bezierv,
@@ -144,17 +151,31 @@ class DistFit:
                                                 self.emp_cdf_data,
                                                 solver_NL)
 
-        elif method == 'neldermead':
-            self.bezierv, self.mse = nm.fit(self.n,
+            elif algorithm == 'neldermead':
+                self.bezierv, self.mse = nm.fit(
+                                                self.n,
+                                                self.m,
+                                                self.data,
+                                                self.bezierv,
+                                                self.init_x,
+                                                self.init_z,
+                                                self.emp_cdf_data,
+                                                max_iter_NM)
+            else:
+                raise ValueError("Algorithm not recognized. Use 'projgrad', 'nonlinear', or 'neldermead'.")
+            
+        elif method == 'mle':
+            self.bezierv, self.mse = ipm.fit(
+                                            self.n,
                                             self.m,
                                             self.data,
                                             self.bezierv,
                                             self.init_x,
                                             self.init_z,
-                                            self.emp_cdf_data,
-                                            max_iter_NM)
+                                            self.init_t,
+                                            self.emp_cdf_data)
         else:
-            raise ValueError("Method not recognized. Use 'projgrad', 'nonlinear', or 'neldermead'.")
+            raise ValueError("Method not recognized. Use 'mse' or 'mle'.")
 
         return copy.copy(self.bezierv), copy.copy(self.mse)
     
