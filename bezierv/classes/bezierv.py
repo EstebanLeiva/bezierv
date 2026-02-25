@@ -408,7 +408,7 @@ class Bezierv:
                     total += self.comb[ell] * self.controls_x[ell] * inner_sum
                 self.mean = 0.5 * total
             else:
-                a, b = self.bounds
+                a, b = self.support
                 self.mean, _ = quad(lambda x: x * self.pdf_x(x), a, b) 
         return self.mean
 
