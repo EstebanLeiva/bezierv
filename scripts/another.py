@@ -7,7 +7,7 @@ from bezierv.classes.distfit import DistFit
 distributions = ['normal', 'exponential', 'uniform', 'beta', 'gamma', 'weibull', 'lognormal', 'pareto', 'cauchy', 'triangular']
 for dist in distributions:
     if dist == 'normal':
-        data = np.random.normal(loc=0.0, scale=10.0, size=1000)
+        data = np.random.normal(loc=0.0, scale=10.0, size=10000)
     elif dist == 'exponential':
         data = np.random.exponential(scale=1.0, size=1000)
     elif dist == 'uniform':
@@ -18,6 +18,5 @@ for dist in distributions:
         data = np.random.gamma(shape=2.0, scale=2.0, size=1000)
 
     distfit = DistFit(data=data, n=10)
-    bezierv, mse = distfit.fit(method='mse')
+    bezierv, mse = distfit.fit(method='mle')
     bezierv.plot_cdf(data=data, show=True)
-    print(f"{dist.capitalize()} MSE: {mse:.6f}")

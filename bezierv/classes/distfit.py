@@ -7,7 +7,7 @@ from bezierv.algorithms import proj_grad as pg
 from bezierv.algorithms import non_linear as nl
 from bezierv.algorithms import nelder_mead as nm
 from bezierv.algorithms import utils as utils
-from bezierv.algorithms import interior_point as ipm
+from bezierv.algorithms import primal_grad as primg
 
 
 class DistFit:
@@ -41,6 +41,7 @@ class DistFit:
                  init_x: np.array=None, 
                  init_z: np.array=None,
                  init_t: np.array=None,
+                 init_w: np.array=None,
                  emp_cdf_data: np.array=None, 
                  method_init_x: str='quantile'
                  ):
@@ -67,12 +68,19 @@ class DistFit:
         self.bezierv = Bezierv(n)
         self.m = len(data)
         self.mse = np.inf
+        self.nll = np.inf
 
         if init_x is None:
-            self.init_x = self.get_controls_x(method_init_x)
+            init_x = self.get_controls_x(method_init_x)
+            if np.diff(init_x).min() <= 0:
+                raise ValueError("init_x must be distinct (strictly increasing).")
+            self.init_x = init_x
         else:
             init_x = np.asarray(init_x, dtype=float)
+            if np.diff(init_x).min() <= 0:
+                raise ValueError("init_x must be distinct (strictly increasing).")
             self.init_x = init_x
+            
 
         if init_t is None:
             self.init_t = utils.get_t(self.n, self.m, self.data, self.bezierv, self.init_x)
@@ -84,6 +92,12 @@ class DistFit:
         else:
             init_z = np.asarray(init_z, dtype=float)
             self.init_z = init_z
+
+        if init_w is None:
+            self.init_w = np.ones(self.n) / self.n
+        else:
+            init_w = np.asarray(init_w, dtype=float)
+            self.init_w = init_w
 
         if emp_cdf_data is None:
             emp_cdf = ECDF(self.data)
@@ -98,7 +112,12 @@ class DistFit:
             max_iter_PG: int=1000,
             threshold_PG: float=1e-3,
             solver_NL: str='ipopt',
-            max_iter_NM: int=1000) -> Bezierv:
+            max_iter_NM: int=1000,
+            max_iter: int=1000,
+            tol: float=1e-3,
+            tol_res_root: float=1e-5,
+            tol_lambda_root: float=1e-5,
+            max_iters_root: int=100) -> Bezierv:
         """
         Fit the bezierv distribution to the data.
 
@@ -119,7 +138,14 @@ class DistFit:
             The solver to use for the nonlinear fitting method (default is 'ipopt').
         max_iter_NM : int, optional
             The maximum number of iterations for the Nelder-Mead optimization method (default is 1000).
-        
+        tol : float, optional
+            The tolerance for convergence (default is 1e-3).
+        tol_res_root : float, optional
+            The tolerance for the root-finding in the primal gradient method (default is 1e-5).
+        tol_lambda_root : float, optional
+            The tolerance for the lambda root-finding in the primal gradient method (default is 1e-5).
+        max_iters_root : int, optional
+            The maximum number of iterations for the root-finding in the primal gradient method (default is 100).
         Returns
         -------
         Bezierv
@@ -127,7 +153,7 @@ class DistFit:
         """
         if method == 'mse':
             if algorithm == 'projgrad':
-                self.bezierv, self.mse = pg.fit(
+                self.bezierv, metric = pg.fit(
                                                 self.n, 
                                                 self.m, 
                                                 self.data, 
@@ -139,8 +165,9 @@ class DistFit:
                                                 step_size_PG, 
                                                 max_iter_PG, 
                                                 threshold_PG)
+                self.mse = metric
             elif algorithm == 'nonlinear':
-                self.bezierv, self.mse = nl.fit(
+                self.bezierv, metric = nl.fit(
                                                 self.n,
                                                 self.m,
                                                 self.data,
@@ -150,9 +177,10 @@ class DistFit:
                                                 self.init_t,
                                                 self.emp_cdf_data,
                                                 solver_NL)
+                self.mse = metric
 
             elif algorithm == 'neldermead':
-                self.bezierv, self.mse = nm.fit(
+                self.bezierv, metric = nm.fit(
                                                 self.n,
                                                 self.m,
                                                 self.data,
@@ -161,23 +189,30 @@ class DistFit:
                                                 self.init_z,
                                                 self.emp_cdf_data,
                                                 max_iter_NM)
+                self.mse = metric
             else:
                 raise ValueError("Algorithm not recognized. Use 'projgrad', 'nonlinear', or 'neldermead'.")
             
         elif method == 'mle':
-            self.bezierv, self.mse = ipm.fit(
+            self.bezierv, metric = primg.fit(
                                             self.n,
                                             self.m,
                                             self.data,
                                             self.bezierv,
                                             self.init_x,
-                                            self.init_z,
+                                            self.init_w,
                                             self.init_t,
-                                            self.emp_cdf_data)
+                                            self.emp_cdf_data,
+                                            max_iter,
+                                            tol,
+                                            tol_res_root,
+                                            tol_lambda_root,
+                                            max_iters_root)
+            self.nll = metric
         else:
             raise ValueError("Method not recognized. Use 'mse' or 'mle'.")
 
-        return copy.copy(self.bezierv), copy.copy(self.mse)
+        return copy.copy(self.bezierv), metric
     
     def get_controls_z(self) -> np.array:
         """

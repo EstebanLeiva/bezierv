@@ -2,7 +2,9 @@ import numpy as np
 from bezierv.classes.bezierv import Bezierv
 from bezierv.algorithms.isotonic_reg import project
 
-def compute_bernstein_basis(n: int, t: np.array, bezierv: Bezierv) -> np.array:
+def compute_bernstein_basis(n: int, 
+                            t: np.array, 
+                            bezierv: Bezierv) -> np.array:
     """
     Helper function to precompute the Bernstein basis matrix.
     
