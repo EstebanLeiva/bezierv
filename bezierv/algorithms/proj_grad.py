@@ -2,15 +2,33 @@ import numpy as np
 from bezierv.classes.bezierv import Bezierv
 from bezierv.algorithms.isotonic_reg import project
 
-def compute_bernstein_basis(n: int, t: np.array, bezierv: Bezierv) -> np.array:
+def compute_bernstein_basis(n: int,
+                            t: np.ndarray,
+                            bezierv: Bezierv) -> np.ndarray:
     """
-    Helper function to precompute the Bernstein basis matrix.
-    
+    Precompute the degree-``n`` Bernstein basis matrix for the Bézier CDF.
+
+    Evaluates all ``n + 1`` degree-``n`` Bernstein basis polynomials at each
+    parameter value in ``t``. The resulting matrix ``B`` satisfies
+    ``B @ z = F̂`` in the minimum-error objective (Section 3 of the paper).
+    Unlike the basis in ``primal_grad``, this uses degree ``n`` (for the CDF)
+    rather than degree ``n - 1`` (for the PDF).
+
+    Parameters
+    ----------
+    n : int
+        Degree of the Bézier curve (``n + 1`` control points).
+    t : numpy.ndarray, shape (m,)
+        Parameter values in ``[0, 1]`` at which to evaluate the basis.
+    bezierv : Bezierv
+        Bézier random variable providing the precomputed binomial
+        coefficients ``comb``.
+
     Returns
     -------
-    np.array
-        Shape (m, n+1), where element [j, i] is the i-th Bernstein 
-        basis polynomial evaluated at t[j].
+    numpy.ndarray, shape (m, n + 1)
+        Basis matrix where ``B[j, i]`` is the ``i``-th degree-``n``
+        Bernstein basis polynomial evaluated at ``t[j]``.
     """
     i_vals = np.arange(n + 1)
     t_col = t[:, np.newaxis]
@@ -19,18 +37,39 @@ def compute_bernstein_basis(n: int, t: np.array, bezierv: Bezierv) -> np.array:
     B = bezierv.comb * term1 * term2
     return B
 
-def grad(n: int, 
-         m: int, 
-         t: np.array, 
-         bezierv: Bezierv, 
-         controls_z: np.array, 
-         emp_cdf_data: np.array,
-         basis_matrix: np.array = None) -> np.array:
+def grad(n: int,
+         t: np.ndarray,
+         bezierv: Bezierv,
+         controls_z: np.ndarray,
+         emp_cdf_data: np.ndarray,
+         basis_matrix: np.ndarray = None) -> np.ndarray:
     """
-    Compute the gradient of the fitting objective with respect to the z control points.
-    
-    Optimized to use matrix multiplication. Accepts an optional precomputed
-    basis_matrix for performance in iterative loops.
+    Compute the gradient of the MSE objective w.r.t. the z control points.
+
+    Evaluates ``∇_z ‖Bz - F̂‖² = 2 Bᵀ(Bz - F̂)`` where ``B`` is the
+    Bernstein basis matrix and ``F̂`` are the empirical CDF values
+    (Section 3 of the paper).
+
+    Parameters
+    ----------
+    n : int
+        Degree of the Bézier curve.
+    t : numpy.ndarray, shape (m,)
+        Parameter values in ``[0, 1]`` for each observation.
+    bezierv : Bezierv
+        Bézier random variable providing the Bernstein basis evaluator.
+    controls_z : numpy.ndarray, shape (n + 1,)
+        Current z-coordinates of the control points.
+    emp_cdf_data : numpy.ndarray, shape (m,)
+        Empirical CDF values at each observation.
+    basis_matrix : numpy.ndarray, shape (m, n + 1), optional
+        Precomputed basis matrix from :func:`compute_bernstein_basis`.
+        Computed on the fly if not provided.
+
+    Returns
+    -------
+    numpy.ndarray, shape (n + 1,)
+        Gradient ``2 Bᵀ(Bz - F̂)``.
     """
     if basis_matrix is None:
         B = compute_bernstein_basis(n, t, bezierv)
@@ -43,35 +82,78 @@ def grad(n: int,
     
     return grad_z
 
-def project_z(controls_z: np.array) -> np.array:
+def project_z(controls_z: np.ndarray) -> np.ndarray:
     """
-    Project the z control points onto the feasible set.
+    Project the z control points onto the bounded monotone feasible set.
+
+    Delegates to :func:`~bezierv.algorithms.isotonic_reg.project` with
+    boundary conditions ``z₀ = 0`` and ``zₙ = 1`` (CDF constraints from
+    Section 3 of the paper).
+
+    Parameters
+    ----------
+    controls_z : numpy.ndarray, shape (n + 1,)
+        Current z-coordinates of the control points.
+
+    Returns
+    -------
+    numpy.ndarray, shape (n + 1,)
+        Projected control points satisfying ``0 = z[0] <= ... <= z[n] = 1``.
     """
-    # Assuming project handles numpy arrays efficiently
     z_prime = project(controls_z, lower=0.0, upper=1.0)
     return z_prime
 
-def fit(n: int, 
-        m: int, 
-        data: np.array,
+def fit(n: int,
         bezierv: Bezierv,
-        init_x: np.array,
-        init_z: np.array,
-        t: np.array,
-        emp_cdf_data: np.array, 
-        step_size: float, 
+        init_x: np.ndarray,
+        init_z: np.ndarray,
+        t: np.ndarray,
+        emp_cdf_data: np.ndarray,
+        step_size: float,
         max_iter: int,
-        threshold: float) -> tuple:
+        threshold: float) -> tuple[Bezierv, float]:
     """
-    Fit the Bezier random variable to the empirical CDF data using projected gradient descent.
+    Fit a Bézier distribution via projected gradient descent on the MSE objective.
+
+    Minimizes ``(1/m) ‖Bz - F̂‖²`` over the bounded monotone feasible set
+    by iterating a gradient step followed by projection via :func:`project_z`.
+    Implements Algorithm 1 from Section 3 of the paper.
+
+    Parameters
+    ----------
+    n : int
+        Degree of the Bézier curve (``n + 1`` control points).
+    bezierv : Bezierv
+        Bézier random variable to be updated with the fitted parameters.
+    init_x : numpy.ndarray, shape (n + 1,)
+        Fixed x-coordinates of the control points (support knots).
+    init_z : numpy.ndarray, shape (n + 1,)
+        Initial z-coordinates of the control points.
+    t : numpy.ndarray, shape (m,)
+        Pre-computed parameter values for each observation, from
+        :func:`~bezierv.algorithms.utils.get_t`.
+    emp_cdf_data : numpy.ndarray, shape (m,)
+        Empirical CDF values at each observation.
+    step_size : float
+        Gradient descent step size ``η``.
+    max_iter : int
+        Maximum number of projected gradient iterations.
+    threshold : float
+        Convergence tolerance on ``‖z_{k+1} - z_k‖``.
+
+    Returns
+    -------
+    bezierv : Bezierv
+        Updated Bézier random variable with fitted control points.
+    mse : float
+        Final mean squared error between the fitted CDF and the empirical CDF.
     """
 
     B = compute_bernstein_basis(n, t, bezierv)
-    
     z = init_z.copy()
     
     for i in range(max_iter):
-        grad_z = grad(n, m, t, bezierv, z, emp_cdf_data, basis_matrix=B)
+        grad_z = grad(n, t, bezierv, z, emp_cdf_data, basis_matrix=B)
         z_step = z - step_size * grad_z
         z_prime = project_z(z_step)
         if np.linalg.norm(z_prime - z) < threshold:

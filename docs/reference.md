@@ -184,22 +184,6 @@ Fast and stable gradient-based optimization with projection onto the feasible re
 
 ---
 
-### Projected Subgradient Method
-
-Memory-efficient optimization suitable for large datasets.
-
-::: bezierv.algorithms.proj_subgrad
-    handler: python
-    options:
-      heading_level: 4
-      show_root_heading: true
-      show_source: false
-      members_order: source
-      docstring_style: numpy
-      separate_signature: true
-
----
-
 ### Nonlinear Optimization
 
 Robust scipy-based nonlinear solver for complex fitting problems.

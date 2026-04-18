@@ -22,7 +22,7 @@ def triangular_cdf(z):
 def test_cdf_z_matches_triangle(two_uniform_bezierv):
     bz_list = [i for i in two_uniform_bezierv]
     conv = Convolver(bz_list)
-    bz_conv = conv.convolve(n_sims=1000, rng=42)
+    bz_conv, _ = conv.convolve(n_sims=1000, rng=42)
 
     for x in [0, 0.2, 0.8, 1.0, 1.4, 2]:
         val = bz_conv.cdf_x(x)
@@ -32,7 +32,7 @@ def test_cdf_z_matches_triangle(two_uniform_bezierv):
 def test_conv_calls_distfit_and_returns(two_uniform_bezierv):
     bz_list = [i for i in two_uniform_bezierv]
     conv = Convolver(bz_list)
-    bez_out = conv.convolve(method="projgrad")
+    bez_out, _ = conv.convolve(method="mse", algorithm="projgrad")
     assert isinstance(bez_out, Bezierv)
     assert np.all(np.diff(bez_out.controls_x) >= 0)
     assert np.all(np.diff(bez_out.controls_z) >= 0)
@@ -60,9 +60,10 @@ def test_exact_cdf_two_bezierv_boundary_conditions(two_uniform_bezierv):
 def test_convolve_exact_matches_triangle(two_uniform_bezierv):
     bz_list = [i for i in two_uniform_bezierv]
     conv = Convolver(bz_list)
-    bz_conv_exact = conv.convolve_exact(n_points=1000, n=5, method="projgrad")
+    bz_conv_exact, value = conv.convolve_exact(n_points=1000, n=5, method="mse", algorithm="projgrad")
+    assert isinstance(value, float)
+
     test_points = [0, 0.2, 0.8, 1.0, 1.4, 2.0]
-    
     for x in test_points:
         val = bz_conv_exact.cdf_x(x)
         expected = triangular_cdf(x)
@@ -72,8 +73,10 @@ def test_convolve_exact_matches_triangle(two_uniform_bezierv):
 def test_convolve_exact_calls_distfit_and_returns(two_uniform_bezierv):
     bz_list = [i for i in two_uniform_bezierv]
     conv = Convolver(bz_list)
-    bez_out = conv.convolve_exact(n_points=100, n=3, method="projgrad")
+    bez_out, value = conv.convolve_exact(n_points=100, n=3, method="mse", algorithm="projgrad")
+
     assert isinstance(bez_out, Bezierv)
+    assert isinstance(value, float)
     assert np.all(np.diff(bez_out.controls_x) >= 0)
     assert np.all(np.diff(bez_out.controls_z) >= 0)
     assert bez_out.controls_z[0] == pytest.approx(0.0, abs=1e-6)

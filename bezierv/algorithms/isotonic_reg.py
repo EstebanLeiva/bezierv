@@ -1,60 +1,50 @@
 import numpy as np
 
-def bounded_iso_mean(y, w, a=None, b=None):
+def bounded_iso_mean(y: np.ndarray, 
+                     w: np.ndarray, 
+                     a: np.ndarray = None, 
+                     b: np.ndarray = None) -> np.ndarray:
     """
-    Compute the bounded isotonic mean using a stack-based Pool Adjacent Violators Algorithm (PAVA).
-    
-    This is an O(N) implementation that computes the weighted isotonic regression of y with respect 
-    to weights w, subject to element-wise lower bounds a and upper bounds b. The algorithm uses a 
-    stack-based approach to merge adjacent blocks that violate the isotonicity constraint (i.e., 
-    when a previous block's value is greater than or equal to the current block's value).
-    
-    The isotonic regression finds the best monotonically non-decreasing approximation to the input 
-    data by minimizing the weighted squared error, while respecting the provided bounds on each element.
-    
+    Weighted isotonic regression with element-wise bounds via PAVA.
+
+    Solves ``min_{x} sum_i w[i] * (x[i] - y[i])^2`` subject to
+    ``x[0] <= x[1] <= ... <= x[n-1]`` and ``a[i] <= x[i] <= b[i]``,
+    using an O(n) stack-based Pool Adjacent Violators Algorithm. This is
+    the projection subroutine used by the first-order fitting algorithms
+    described in Section 3 of the paper.
+
     Parameters
     ----------
-    y : array_like
-        Input values to be fitted. Expected to be a 1D array of length n.
-    w : array_like
-        Weights for each element in y. Must have the same length as y. Weights should be positive.
-    a : array_like, optional
-        Lower bounds for each element. If None, defaults to -infinity for all elements.
-        Must have the same length as y if provided.
-    b : array_like, optional
-        Upper bounds for each element. If None, defaults to +infinity for all elements.
-        Must have the same length as y if provided.
-    
+    y : array_like, shape (n,)
+        Input values to make isotonic.
+    w : array_like, shape (n,)
+        Positive weights for each element.
+    a : array_like, shape (n,), optional
+        Per-element lower bounds. Defaults to ``-inf`` if not provided.
+    b : array_like, shape (n,), optional
+        Per-element upper bounds. Defaults to ``+inf`` if not provided.
+
     Returns
     -------
-    np.ndarray
-        The bounded isotonic regression result as a 1D array of length n. The output is 
-        monotonically non-decreasing and each element satisfies a[i] <= result[i] <= b[i].
-        If bounds are invalid (a[i] > b[i]) for any merged block, that block's value is NaN.
-    
+    numpy.ndarray, shape (n,)
+        Non-decreasing sequence satisfying ``a[i] <= result[i] <= b[i]``.
+        Entries belonging to a block whose merged bounds are infeasible
+        (``a > b``) are set to ``NaN``.
+
     Notes
     -----
-    The algorithm uses a stack-based PAVA approach that maintains O(1) incremental updates. 
-    Each block on the stack stores:
-    - Weighted sum (wy)
-    - Sum of weights (w)
-    - Maximum lower bound (a) across merged elements
-    - Minimum upper bound (b) across merged elements
-    - Count of original elements in the block
-    - Current bounded average value
-    
-    When merging blocks, the bounds are combined by taking the maximum of lower bounds and
-    the minimum of upper bounds to ensure all constraints are satisfied.
-    
+    Each stack block tracks: weighted sum ``wy``, total weight ``w``,
+    tightest lower bound ``max(a)``, tightest upper bound ``min(b)``,
+    element count, and current clipped mean. Blocks are merged whenever
+    the top-of-stack value would violate monotonicity.
+
     Examples
     --------
     >>> y = np.array([3.0, 1.0, 2.0, 4.0])
     >>> w = np.ones(4)
     >>> bounded_iso_mean(y, w)
     array([2., 2., 2., 4.])
-    
-    >>> y = np.array([3.0, 1.0, 2.0, 4.0])
-    >>> w = np.ones(4)
+
     >>> a = np.array([0.0, 0.0, 0.0, 0.0])
     >>> b = np.array([5.0, 5.0, 5.0, 5.0])
     >>> bounded_iso_mean(y, w, a, b)
@@ -130,16 +120,40 @@ def bounded_iso_mean(y, w, a=None, b=None):
         
     return result
 
-def project(controls: np.array, lower: float, upper: float) -> np.array:
+def project(controls: np.ndarray, 
+            lower: float, 
+            upper: float) -> np.ndarray:
+    """
+    Project control points onto the bounded monotone feasible set.
+
+    Fixes the boundary control points at ``lower`` and ``upper`` and projects
+    the ``n - 1`` interior points onto the set of non-decreasing sequences
+    in ``[lower, upper]`` via :func:`bounded_iso_mean`. This corresponds to
+    the projection operator used in the projected gradient algorithms of the
+    paper (Section 3).
+
+    Parameters
+    ----------
+    controls : numpy.ndarray, shape (n + 1,)
+        Current z-coordinates of the ``n + 1`` Bézier control points.
+    lower : float
+        Lower boundary value; enforced as ``controls[0]``. Corresponds to
+        ``z_0 = 0`` (cdf boundary condition) in the paper.
+    upper : float
+        Upper boundary value; enforced as ``controls[-1]``. Corresponds to
+        ``z_n = 1`` (cdf boundary condition) in the paper.
+
+    Returns
+    -------
+    numpy.ndarray, shape (n + 1,)
+        Projected control points satisfying ``lower = p[0] <= p[1] <= ... <=
+        p[n] = upper``.
+    """
     n = len(controls)
-    if n <= 2:
-        projected = np.zeros(n)
-        projected[0] = lower
-        projected[-1] = upper
-    else: 
-        w = np.ones(n)
-        projected = np.zeros(n)
-        projected[1:n-1] = bounded_iso_mean(controls[1:n-1], w, a=np.full(n, lower), b=np.full(n, upper))
-        projected[0] = lower
-        projected[-1] = upper
+    projected = np.zeros(n)
+    projected[0] = lower
+    projected[-1] = upper
+    if n > 2:
+        w = np.ones(n - 2)
+        projected[1:n-1] = bounded_iso_mean(controls[1:n-1], w, a=np.full(n-2, lower), b=np.full(n-2, upper))
     return projected

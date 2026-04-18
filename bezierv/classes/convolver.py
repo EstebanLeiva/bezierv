@@ -46,7 +46,7 @@ class Convolver:
                 n, init_x, init_z, init_t, emp_cdf_data, method_init_x
             Fit options for DistFit.fit(...):
                 method, step_size_PG, max_iter_PG, threshold_PG,
-                step_size_PS, max_iter_PS, solver_NL, max_iter_NM
+                solver_NL, max_iter_NM
         """
         
         rng = np.random.default_rng(rng)
@@ -60,8 +60,8 @@ class Convolver:
             "n", "init_x", "init_z", "init_t", "emp_cdf_data", "method_init_x"
         }
         fit_keys = {
-            "method", "step_size_PG", "max_iter_PG", "threshold_PG",
-            "step_size_PS", "max_iter_PS", "solver_NL", "max_iter_NM"
+            "method", "algorithm", "step_size_PG", "max_iter_PG", "threshold_PG",
+            "solver_NL", "max_iter_NM"
         }
 
         init_kwargs = {k: v for k, v in kwargs.items() if k in init_keys}
@@ -72,8 +72,8 @@ class Convolver:
             raise TypeError(f"Unknown keyword(s) for convolve: {sorted(unknown)}")
 
         fitter = DistFit(bezierv_sum, **init_kwargs)
-        bezierv_result, _ = fitter.fit(**fit_kwargs)
-        return bezierv_result
+        bezierv_result, val = fitter.fit(**fit_kwargs)
+        return bezierv_result, val
     
     def convolve_exact(self, 
                        n_points: int = 1000,
@@ -93,7 +93,7 @@ class Convolver:
                 n, init_x, init_z, init_t, emp_cdf_data, method_init_x
             Fit options for DistFit.fit(...):
                 method, step_size_PG, max_iter_PG, threshold_PG,
-                step_size_PS, max_iter_PS, solver_NL, max_iter_NM
+                solver_NL, max_iter_NM
                 
         Returns
         -------
@@ -123,8 +123,8 @@ class Convolver:
             "n", "init_x", "init_z", "init_t", "emp_cdf_data", "method_init_x"
         }
         fit_keys = {
-            "method", "step_size_PG", "max_iter_PG", "threshold_PG",
-            "step_size_PS", "max_iter_PS", "solver_NL", "max_iter_NM"
+            "method", "algorithm", "step_size_PG", "max_iter_PG", "threshold_PG",
+            "solver_NL", "max_iter_NM"
         }
         
         init_kwargs = {k: v for k, v in kwargs.items() if k in init_keys}
@@ -134,9 +134,9 @@ class Convolver:
             init_kwargs['emp_cdf_data'] = cdf_values
         
         fitter = DistFit(z_points, **init_kwargs)
-        bezierv_result, mse = fitter.fit(**fit_kwargs)
+        bezierv_result, val = fitter.fit(**fit_kwargs)
         
-        return bezierv_result
+        return bezierv_result, val
     
     def exact_cdf_two_bezierv(self, z: float) -> float:
         """

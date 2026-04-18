@@ -120,7 +120,6 @@ bezierv includes multiple fitting algorithms optimized for different scenarios:
 | Algorithm | 
 |-----------|
 | `projgrad` |
-| `projsubgrad` |
 | `nonlinear` | 
 | `neldermead` |
 

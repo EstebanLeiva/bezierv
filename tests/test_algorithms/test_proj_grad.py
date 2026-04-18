@@ -13,7 +13,7 @@ def test_grad_zero_error_returns_zero_gradient():
     controls_z = np.array([0.0, 1.0])
     bez = Bezierv(n, controls_x=np.array([0.0, 1.0]), controls_z=np.array([0.0, 1.0]))
 
-    g = pg.grad(n, m, t, bez, controls_z, emp_cdf)
+    g = pg.grad(n, t, bez, controls_z, emp_cdf)
     np.testing.assert_allclose(g, np.zeros_like(g), atol=1e-12)
 
 def test_fit_converges_and_returns_low_mse():
@@ -32,8 +32,6 @@ def test_fit_converges_and_returns_low_mse():
 
     bezierv , mse = pg.fit(
         n=n,
-        m=m,
-        data=data,
         bezierv=bez,
         init_x=init_x,
         init_z=init_z,
