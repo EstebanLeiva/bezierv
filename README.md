@@ -42,20 +42,21 @@ pip install bezierv
 
 ```python
 import numpy as np
-from bezierv.classes.distfit import DistFit
+from bezierv import DistFit
 
 # Generate or load your data
-data = np.random.beta(2, 5, 1000)  # Example: skewed data
+rng = np.random.default_rng(42)
+data = rng.beta(2, 5, 1000)  # Example: skewed data
 
-# Fit a Bézier distribution
+# Fit a Bézier distribution (MSE objective, projected-gradient solver)
 fitter = DistFit(data, n=5)  # 5 control segments
-bezier_rv, mse = fitter.fit(method="projgrad")
+bezier_rv, mse = fitter.fit(method='mse', algorithm='projgrad')
 
 # Use the fitted distribution
 samples = bezier_rv.random(10000)      # Generate new samples
-q90 = bezier_rv.quantile(0.90)         # 90th percentile  
+q90 = bezier_rv.quantile(0.90)         # 90th percentile
 mean = bezier_rv.get_mean()            # Distribution mean
-prob = bezier_rv.cdf_x(0.5)            # P(X ≤ 0.5)
+prob = bezier_rv.cdf_x(0.5)            # P(X <= 0.5)
 
 # Visualize the fit
 bezier_rv.plot_cdf(data)  # Compare with empirical CDF
@@ -65,18 +66,15 @@ bezier_rv.plot_pdf()      # Show probability density
 ### Advanced: Convolution of Random Variables
 
 ```python
-from bezierv.classes.convolver import Convolver
+from bezierv import DistFit, Convolver
 
 # Fit two distributions
-rv1 = DistFit(data1, n=4).fit()[0]
-rv2 = DistFit(data2, n=4).fit()[0]
+rv1, _ = DistFit(data1, n=4).fit(method='mse', algorithm='projgrad')
+rv2, _ = DistFit(data2, n=4).fit(method='mse', algorithm='projgrad')
 
 # Compute their sum: Z = X + Y
 convolver = Convolver([rv1, rv2])
-
-# Monte Carlo
-sum_mc = convolver.convolve(n_sims=10000)
-
+sum_mc, _ = convolver.convolve(n_sims=10000, rng=42)
 ```
 
 ---
@@ -117,13 +115,31 @@ Then run: `bokeh serve --show your_app.py`
 
 bezierv includes multiple fitting algorithms optimized for different scenarios:
 
-| Algorithm | 
-|-----------|
-| `projgrad` |
-| `nonlinear` | 
-| `neldermead` |
+| Objective | Algorithm | Call |
+|-----------|-----------|------|
+| MSE | Projected Gradient | `method='mse', algorithm='projgrad'` |
+| MSE | Nonlinear (IPOPT) | `method='mse', algorithm='nonlinear'` |
+| MSE | Nelder-Mead | `method='mse', algorithm='neldermead'` |
+| MLE | Primal Gradient | `method='mle'` |
+
+`method='mse'` returns `(bezierv, mse)`. `method='mle'` returns `(bezierv, nll)`.
 
 
+
+## Citation
+
+If you use **bezierv** in your research, please cite the accompanying paper (forthcoming on arXiv):
+
+```bibtex
+@article{leiva2026bezierv,
+  title   = {Computational Framework for {B\'{e}zier} Distributions},
+  author  = {Leiva, Esteban and Medaglia, Andr\'{e}s L. and Zuluaga, Luis F.},
+  year    = {2026},
+  note    = {Forthcoming on arXiv}
+}
+```
+
+---
 
 ## License
 
