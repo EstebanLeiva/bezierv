@@ -1,10 +1,10 @@
-# Bezierv: Flexible Bézier Random Variables
+# Bezierv: Bézier Random Variables
 
 <div align="center">
   <img src="assets/logo.png" alt="bezierv logo" width="200"/>
 </div>
 
-**bezierv** is a Python package for fitting, analyzing, and sampling from Bézier-based random variables. Bézier random variables can adapt to virtually any continuous distribution shape.
+**bezierv** is a Python package for fitting, analyzing, and sampling from Bézier random variables. Bézier random variables can adapt to virtually any continuous distribution shape.
 
 !!! tip "New to Bézier distributions?"
     Start with our [Quick Start Guide](#quick-start) for a hands-on introduction, or explore the [Interactive Demo](#interactive-visualization) to see Bézier curves in action.
@@ -14,7 +14,7 @@
 ## ✨ Key Features
 
 - **🎯 Flexible Fitting**: Adapt to any continuous distribution shape
-- **⚡ Multiple Algorithms**: Choose from 4 optimization methods
+- **⚡ Multiple Algorithms**: 3 MSE algorithms (projgrad, nonlinear, neldermead) plus MLE fitting
 - **🔄 Convolution Support**: Compute sums of random variables exactly or via Monte Carlo  
 - **🎮 Interactive Tools**: Browser-based curve editor with real-time updates
 - **📊 Rich Visualization**: Built-in plotting for CDFs, PDFs, and control points
@@ -38,15 +38,15 @@ Fit a Bézier distribution to your data in just a few lines:
 
 ```python
 import numpy as np
-from bezierv.classes.distfit import DistFit
+from bezierv import DistFit
 
 # Generate sample data (replace with your own)
-np.random.seed(42)
-data = np.random.beta(2, 5, 1000)  # Skewed distribution
+rng = np.random.default_rng(42)
+data = rng.beta(2, 5, 1000)  # Skewed distribution
 
 # Fit Bézier distribution
 fitter = DistFit(data, n=5)  # 5 control segments (6 control points)
-bezier_rv, mse = fitter.fit(method="projgrad")
+bezier_rv, mse = fitter.fit(method='mse', algorithm='projgrad')
 
 print(f"Fit completed with MSE: {mse:.6f}")
 
@@ -121,18 +121,19 @@ This opens an interactive tool in your browser where you can:
 ### Monte Carlo Convolution (Fast)
 
 ```python
-from bezierv.classes.convolver import Convolver
+from bezierv import DistFit, Convolver
 
 # Fit two separate distributions
-data1 = np.random.gamma(2, 2, 1000)
-data2 = np.random.exponential(1, 1000)
+rng = np.random.default_rng(42)
+data1 = rng.gamma(2, 2, 1000)
+data2 = rng.exponential(1, 1000)
 
-rv1 = DistFit(data1, n=4).fit()[0]
-rv2 = DistFit(data2, n=4).fit()[0]
+rv1, _ = DistFit(data1, n=4).fit(method='mse', algorithm='projgrad')
+rv2, _ = DistFit(data2, n=4).fit(method='mse', algorithm='projgrad')
 
 # Compute their sum via Monte Carlo
 convolver = Convolver([rv1, rv2])
-sum_rv = convolver.convolve(n_sims=10000, rng=42)
+sum_rv, _ = convolver.convolve(n_sims=10000, rng=42)
 
 print(f"Sum mean: {sum_rv.get_mean():.3f}")
 ```
@@ -143,23 +144,33 @@ print(f"Sum mean: {sum_rv.get_mean():.3f}")
 
 Choose the best algorithm for your use case:
 
-| Algorithm | Method Call | 
-|-----------|-------------|
-| **Projected Gradient** | `method="projgrad"` | 
-| **Nonlinear Optimization** | `method="nonlinear"` |
-| **Nelder-Mead** | `method="neldermead"` |
+| Objective | Algorithm | Call |
+|-----------|-----------|------|
+| **MSE** | Projected Gradient | `method='mse', algorithm='projgrad'` |
+| **MSE** | Nonlinear Optimization | `method='mse', algorithm='nonlinear'` |
+| **MSE** | Nelder-Mead | `method='mse', algorithm='neldermead'` |
+| **MLE** | Primal Gradient | `method='mle'` |
 
 ### Algorithm Comparison Example
 
 ```python
-methods = ["projgrad", "nonlinear", "neldermead"]
-results = {}
+import numpy as np
+from bezierv import DistFit
 
-for method in methods:
+rng = np.random.default_rng(42)
+data = rng.beta(2, 5, 1000)
+
+# MSE-based algorithms
+mse_algorithms = ["projgrad", "nonlinear", "neldermead"]
+for algo in mse_algorithms:
     fitter = DistFit(data, n=5)
-    bz, mse = fitter.fit(method=method, max_iter_PG=1000)
-    results[method] = {"mse": mse, "mean": bz.get_mean()}
-    print(f"{method:12s}: MSE = {mse:.6f}, Mean = {bz.get_mean():.6f}")
+    bz, mse = fitter.fit(method='mse', algorithm=algo)
+    print(f"mse/{algo:12s}: MSE = {mse:.6f}, Mean = {bz.get_mean():.4f}")
+
+# MLE fitting
+fitter = DistFit(data, n=5)
+bz_mle, nll = fitter.fit(method='mle')
+print(f"mle/primgrad  : NLL = {nll:.6f}, Mean = {bz_mle.get_mean():.4f}")
 ```
 
 ---
@@ -179,7 +190,7 @@ data_bimodal = np.concatenate([
 
 # Use more control points for complex shapes
 fitter = DistFit(data_bimodal, n=10)
-bimodal_rv, mse = fitter.fit(method="nonlinear")
+bimodal_rv, mse = fitter.fit(method='mse', algorithm='nonlinear')
 
 # Visualize the complex fit
 bimodal_rv.plot_pdf()
@@ -200,17 +211,19 @@ bimodal_rv.plot_pdf()
 
 ### Algorithm Selection Guide
 
-1. **Start with `projgrad`** - fastest and works well for most cases
-2. **Try `nonlinear`** if you need highest accuracy and can afford to fail
+1. **Start with `method='mse', algorithm='projgrad'`** - fastest, works well for most cases
+2. **Try `method='mse', algorithm='nonlinear'`** if you need highest MSE accuracy
+3. **Use `method='mle'`** to fit by maximum likelihood (returns NLL instead of MSE)
 
 ### Performance Tips
 
 ```python
 # For large datasets, consider subsampling for initial fit
 if len(data) > 10000:
-    subset = np.random.choice(data, 5000, replace=False)
+    rng = np.random.default_rng(42)
+    subset = rng.choice(data, 5000, replace=False)
     fitter = DistFit(subset, n=5)
-    quick_fit, _ = fitter.fit(method="projgrad")
+    quick_fit, _ = fitter.fit(method='mse', algorithm='projgrad')
 ```
 
 ---
@@ -220,5 +233,20 @@ if len(data) > 10000:
 - **[🔧 API Reference](reference.md)** - Complete function documentation
 - **[📖 Tutorials](tutorials.md)** - Step-by-step learning with examples
 - **[🐛 Issues](https://github.com/EstebanLeiva/bezierv/issues)** - Report bugs or request features
+
+---
+
+## 📄 Citation
+
+If you use **bezierv** in your research, please cite the accompanying paper (forthcoming on arXiv):
+
+```bibtex
+@article{leiva2026bezierv,
+  title   = {Computational Framework for {B\'{e}zier} Distributions},
+  author  = {Leiva, Esteban and Medaglia, Andr\'{e}s L. and Zuluaga, Luis F.},
+  year    = {2026},
+  note    = {Manuscript under review}
+}
+```
 
 ---
