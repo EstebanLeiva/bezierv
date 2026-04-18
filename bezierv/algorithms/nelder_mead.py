@@ -3,38 +3,38 @@ from bezierv.classes.bezierv import Bezierv
 from scipy.optimize import minimize
 import bezierv.algorithms.utils as utils
 
-def objective_function(concatenated: np.array, 
-                       n: int, 
+def objective_function(concatenated: np.ndarray,
+                       n: int,
                        m: int,
-                       data:np.array,
+                       data: np.ndarray,
                        bezierv: Bezierv,
-                       emp_cdf_data: np.array) -> float:
+                       emp_cdf_data: np.ndarray) -> float:
     """
-    Compute the objective function value for the given control points.
+    Compute the MSE between the fitted Bézier CDF and the empirical CDF.
 
-    This method calculates the sum of squared errors between the Bezier random variable's CDF
-    and the empirical CDF data.
+    Evaluates the minimum-error objective ``(1/m) ∑ⱼ (F(xⱼ) - F̂ⱼ)²``
+    where ``F`` is the Bézier CDF parameterized by the given control points
+    and ``F̂ⱼ`` are the empirical CDF values (Section 3 of the paper).
 
     Parameters
     ----------
-    concatenated : np.array
-        A concatenated array containing the control points for z and x coordinates.
-        The first n+1 elements are the z control points, and the remaining elements are the x control points.
+    concatenated : numpy.ndarray, shape (2*(n + 1),)
+        Concatenated control point vector ``[x₀, …, xₙ, z₀, …, zₙ]``.
     n : int
-        The number of control points minus one for the Bezier curve.
+        Degree of the Bézier curve (``n + 1`` control points).
     m : int
-        The number of empirical CDF data points.
-    data : np.array
-        The sorted data points used to fit the Bezier distribution.
+        Sample size.
+    data : numpy.ndarray, shape (m,)
+        Sorted observed sample values.
     bezierv : Bezierv
-        An instance of the Bezierv class representing the Bezier random variable.
-    emp_cdf_data : np.array
-        The empirical CDF data points used for fitting.
+        Bézier random variable providing the CDF evaluator ``poly_z``.
+    emp_cdf_data : numpy.ndarray, shape (m,)
+        Empirical CDF values at each observation.
 
     Returns
     -------
     float
-        The value of the objective function (MSE).
+        Mean squared error between the fitted CDF and the empirical CDF.
     """
     x = concatenated[0 : n + 1]
     z = concatenated[n + 1:]
@@ -44,41 +44,46 @@ def objective_function(concatenated: np.array,
         se += (bezierv.poly_z(t[j], z) - emp_cdf_data[j])**2
     return se / m
 
-def objective_function_lagrangian(concatenated: np.array,
+def objective_function_lagrangian(concatenated: np.ndarray,
                                   n: int,
                                   m: int,
-                                  data: np.array, 
+                                  data: np.ndarray,
                                   bezierv: Bezierv,
-                                  emp_cdf_data: np.array,
-                                  penalty_weight: float=1e3) -> float:
+                                  emp_cdf_data: np.ndarray,
+                                  penalty_weight: float = 1e3) -> float:
     """
-    Compute the objective function value for the given control points.
+    Compute the penalized MSE objective for unconstrained Nelder-Mead optimization.
 
-    This method calculates the sum of squared errors between the Bezier random variable's CDF
-    and the empirical CDF data.
+    Augments :func:`objective_function` with a Lagrangian penalty that
+    enforces the Bézier feasibility constraints — boundary conditions
+    ``z₀ = 0``, ``zₙ = 1``, monotonicity of ``z`` and ``x``, and support
+    matching ``x₀ = data[0]``, ``xₙ = data[-1]`` — since Nelder-Mead does
+    not support constraints natively (Section 3 of the paper, Wagner
+    baseline method).
 
     Parameters
     ----------
-    concatenated : np.array
-        A concatenated array containing the control points for z and x coordinates.
-        The first n+1 elements are the z control points, and the remaining elements are the x control points.
+    concatenated : numpy.ndarray, shape (2*(n + 1),)
+        Concatenated control point vector ``[x₀, …, xₙ, z₀, …, zₙ]``.
     n : int
-        The number of control points minus one for the Bezier curve.
+        Degree of the Bézier curve (``n + 1`` control points).
     m : int
-        The number of empirical CDF data points.
-    data : np.array
-        The sorted data points used to fit the Bezier distribution.
+        Sample size.
+    data : numpy.ndarray, shape (m,)
+        Sorted observed sample values.
     bezierv : Bezierv
-        An instance of the Bezierv class representing the Bezier random variable.
-    emp_cdf_data : np.array
-        The empirical CDF data points used for fitting.
+        Bézier random variable providing the CDF evaluator ``poly_z``.
+    emp_cdf_data : numpy.ndarray, shape (m,)
+        Empirical CDF values at each observation.
     penalty_weight : float, optional
-        The weight for the penalty term in the objective function (default is 1e3).
+        Scaling factor for the constraint violation penalty. Default is
+        ``1e3``.
 
     Returns
     -------
     float
-        The value of the objective function + penalty (MSE + penalty).
+        Penalized objective ``MSE + penalty_weight * constraint_violation``.
+        Returns ``inf`` if root-finding fails for the given ``x`` knots.
     """
     
     x = concatenated[0 : n + 1]
@@ -106,44 +111,48 @@ def objective_function_lagrangian(concatenated: np.array,
 
     return mse + penalty_weight * penalty
 
-def fit(n: int, 
+def fit(n: int,
         m: int,
-        data: np.array,
+        data: np.ndarray,
         bezierv: Bezierv,
-        init_x: np.array,
-        init_z: np.array,
-        emp_cdf_data: np.array,
-        max_iter: int
-        ) -> tuple[Bezierv, float]:
+        init_x: np.ndarray,
+        init_z: np.ndarray,
+        emp_cdf_data: np.ndarray,
+        max_iter: int) -> tuple[Bezierv, float]:
     """
-    Fit the Bezier random variable to the empirical CDF data using the Nelder-Mead optimization algorithm.
+    Fit a Bézier distribution using the Nelder-Mead derivative-free method.
+
+    Minimizes :func:`objective_function_lagrangian` via ``scipy.optimize.minimize``
+    with ``method='Nelder-Mead'``. This is the derivative-free baseline
+    (Wagner's PRIME approach) benchmarked against the first-order methods
+    in Section 7 of the paper.
 
     Parameters
     ----------
     n : int
-        The number of control points minus one for the Bezier curve.
+        Degree of the Bézier curve (``n + 1`` control points).
     m : int
-        The number of empirical CDF data points.
-    data : np.array
-        The sorted data points used to fit the Bezier distribution.
+        Sample size.
+    data : numpy.ndarray, shape (m,)
+        Sorted observed sample values.
     bezierv : Bezierv
-        An instance of the Bezierv class representing the Bezier random variable.
-    init_x : np.array
-        Initial guess for the x-coordinates of the control points.
-    init_z : np.array
-        Initial guess for the z-coordinates of the control points.
-    emp_cdf_data : np.array
-        The empirical CDF data points used for fitting.
+        Bézier random variable to be updated with the fitted parameters.
+    init_x : numpy.ndarray, shape (n + 1,)
+        Initial x-coordinates of the control points.
+    init_z : numpy.ndarray, shape (n + 1,)
+        Initial z-coordinates (CDF values) of the control points.
+    emp_cdf_data : numpy.ndarray, shape (m,)
+        Empirical CDF values at each observation.
     max_iter : int
-        The maximum number of iterations for the optimization algorithm.
-    
+        Maximum number of Nelder-Mead iterations.
+
     Returns
     -------
-    tuple[Bezierv, float]
-        A tuple containing:
-        - bezierv (Bezierv): The fitted `Bezierv` object with updated control
-          points.
-        - mse (float): The final mean squared error (MSE) of the fit.
+    bezierv : Bezierv
+        Updated Bézier random variable with fitted control points.
+    mse : float
+        Final mean squared error of the fit, evaluated via
+        :func:`objective_function`.
     """
     start = np.concatenate((init_x, init_z))
     result = minimize(

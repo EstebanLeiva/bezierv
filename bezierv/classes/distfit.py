@@ -154,9 +154,7 @@ class DistFit:
         if method == 'mse':
             if algorithm == 'projgrad':
                 self.bezierv, metric = pg.fit(
-                                                self.n, 
-                                                self.m, 
-                                                self.data, 
+                                                self.n,
                                                 self.bezierv, 
                                                 self.init_x, 
                                                 self.init_z, 
@@ -197,12 +195,10 @@ class DistFit:
             self.bezierv, metric = primg.fit(
                                             self.n,
                                             self.m,
-                                            self.data,
                                             self.bezierv,
                                             self.init_x,
                                             self.init_w,
                                             self.init_t,
-                                            self.emp_cdf_data,
                                             max_iter,
                                             tol,
                                             tol_res_root,

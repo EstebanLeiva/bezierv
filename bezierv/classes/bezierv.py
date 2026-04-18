@@ -15,48 +15,53 @@ class Bezierv:
                  controls_x: ArrayLike=None, 
                  controls_z: ArrayLike=None):
         """
-        Initialize a Bezierv instance representing a Bezier random variable.
+        Initialize a Bézier random variable.
 
-        This constructor initializes the Bezier curve with a given number of control points `n` and 
-        optionally with provided control points for the x and z coordinates. If control points are not 
-        provided, they are initialized as zero arrays. It also sets up auxiliary arrays for differences 
-        (deltas) and binomial coefficients, and initializes moment attributes to NaN.
+        Sets up control points, binomial coefficient arrays, and consecutive
+        difference arrays. Moment attributes are set to ``np.inf`` as a
+        sentinel indicating they have not yet been computed.
 
         Parameters
         ----------
         n : int
-            The number of control points of the Bezier random variable.
-        controls_x : array-like, optional
-            The x-coordinates of the control points (length n+1). If None, a zero array is created.
-        controls_z : array-like, optional
-            The z-coordinates of the control points (length n+1). If None, a zero array is created.
+            Degree of the Bézier curve. The curve has ``n + 1`` control
+            points (paper notation: degree-``n`` Bézier distribution).
+        controls_x : array-like of shape (n + 1,), optional
+            x-coordinates of the control points. Must be non-decreasing.
+            If ``None``, a zero array is created (placeholder state).
+        controls_z : array-like of shape (n + 1,), optional
+            z-coordinates (CDF values) of the control points. Must be
+            non-decreasing with ``z[0] = 0`` and ``z[n] = 1``.
+            If ``None``, a zero array is created (placeholder state).
 
         Attributes
         ----------
         n : int
-            The number of control points of the Bezier random variables.
-        deltas_x : np.array
+            Degree of the Bézier curve.
+        deltas_x : numpy.ndarray, shape (n,)
             Differences between consecutive x control points.
-        deltas_z : np.array
+        deltas_z : numpy.ndarray, shape (n,)
             Differences between consecutive z control points.
-        comb : np.array
-            Array of binomial coefficients (n).
-        comb_minus : np.array
-            Array of binomial coefficients (n - 1).
-        support : tuple
-            The support of the Bezier random variable (initialized as (-inf, inf)).
-        controls_x : np.array
+        comb : numpy.ndarray, shape (n + 1,)
+            Binomial coefficients ``C(n, i)`` for ``i = 0, …, n``.
+        comb_minus : numpy.ndarray, shape (n,)
+            Binomial coefficients ``C(n-1, i)`` for ``i = 0, …, n-1``
+            (used for PDF evaluation).
+        support : tuple of float
+            ``(controls_x[0], controls_x[-1])``, or ``(-inf, inf)`` in
+            placeholder state.
+        controls_x : numpy.ndarray, shape (n + 1,)
             x-coordinates of the control points.
-        controls_z : np.array
+        controls_z : numpy.ndarray, shape (n + 1,)
             z-coordinates of the control points.
         mean : float
-            The mean of the curve (initialized as np.inf).
-        var : float
-            The variance of the curve (initialized as np.inf).
-        skew : float
-            The skewness of the curve (initialized as np.inf).
-        kurt : float
-            The kurtosis of the curve (initialized as np.inf).
+            Mean of the distribution; ``np.inf`` until computed.
+        variance : float
+            Variance; ``np.inf`` until computed.
+        skewness : float
+            Skewness; ``np.inf`` until computed.
+        kurtosis : float
+            Kurtosis; ``np.inf`` until computed.
         """
         self.n = n
         self.deltas_x = np.zeros(n)
@@ -77,7 +82,7 @@ class Bezierv:
             self.controls_z = controls_z
             self.support = (controls_x[0], controls_x[-1])
         else:
-            raise ValueError('Either all or none of the parameters controls_x and controls_y must be provided')
+            raise ValueError('Either all or none of the parameters controls_x and controls_z must be provided')
 
         self.mean = np.inf
         self.variance = np.inf
@@ -91,18 +96,14 @@ class Bezierv:
                        controls_x: np.array, 
                        controls_z: np.array):
         """
-        Update the control points for the Bezier curve, bounds and recalculate deltas.
+        Update the control points, support, and delta arrays in-place.
 
         Parameters
         ----------
-        controls_x : array-like
-            The new x-coordinates of the control points.
-        controls_z : array-like
-            The new z-coordinates of the control points.
-
-        Returns
-        -------
-        None
+        controls_x : array-like of shape (n + 1,)
+            New x-coordinates of the control points. Must be non-decreasing.
+        controls_z : array-like of shape (n + 1,)
+            New z-coordinates of the control points. Must be non-decreasing.
         """
         controls_x = np.asarray(controls_x, dtype=float)
         controls_z = np.asarray(controls_z, dtype=float)
@@ -134,43 +135,50 @@ class Bezierv:
             self.deltas_x[i] = self.controls_x[i + 1] - self.controls_x[i]
             self.deltas_z[i] = self.controls_z[i + 1] - self.controls_z[i]
 
-    def bernstein(self, t: float, i: int, combinations: np.array, n: int) -> float:
+    def bernstein(self, t: float, i: int, combinations: np.ndarray, n: int) -> float:
         """
-        Compute the Bernstein basis polynomial value.
+        Evaluate the ``i``-th degree-``n`` Bernstein basis polynomial at ``t``.
+
+        Computes ``B_{n,i}(t) = C(n,i) * t^i * (1-t)^(n-i)`` as defined
+        in Eq. (1) of the paper.
 
         Parameters
         ----------
         t : float
-            The parameter value (in the interval [0, 1]).
+            Parameter value in ``[0, 1]``.
         i : int
-            The index of the Bernstein basis polynomial.
-        combinations : np.array
-            An array of binomial coefficients to use in the computation.
+            Index of the basis polynomial, ``0 <= i <= n``.
+        combinations : numpy.ndarray
+            Precomputed binomial coefficients; pass ``self.comb`` for
+            degree ``n`` or ``self.comb_minus`` for degree ``n - 1``.
         n : int
-            The degree for the Bernstein polynomial.
+            Degree of the Bernstein polynomial.
 
         Returns
         -------
         float
-            The value of the Bernstein basis polynomial at t.
+            Value of ``B_{n,i}(t)``.
         """
         return combinations[i] * t**i * (1 - t)**(n - i)
 
-    def poly_x(self, t: float, controls_x: np.array = None) -> float:
+    def poly_x(self, t: float, controls_x: np.ndarray = None) -> float:
         """
-        Evaluate the x-coordinate at a given t value.
+        Evaluate the x-component of the Bézier curve at parameter ``t``.
+
+        Computes ``B_x(t) = ∑ᵢ B_{n,i}(t) * xᵢ`` (Eq. 2 of the paper).
 
         Parameters
         ----------
         t : float
-            The parameter value at which to evaluate (in [0, 1]).
-        controls_x : np.array, optional
-            An array of control points for the x-coordinate. Defaults to self.controls_x.
+            Parameter value in ``[0, 1]``.
+        controls_x : numpy.ndarray of shape (n + 1,), optional
+            x-coordinates of the control points. Defaults to
+            ``self.controls_x``.
 
         Returns
         -------
         float
-            The evaluated x-coordinate at t.
+            x-coordinate of the Bézier curve at ``t``.
         """
         if controls_x is None:
             self._ensure_initialized()
@@ -181,21 +189,26 @@ class Bezierv:
            p_x  += self.bernstein(t, i, self.comb, self.n) * controls_x[i]
         return p_x
 
-    def poly_z(self, t: float, controls_z: np.array = None) -> float:
+    def poly_z(self, t: float, controls_z: np.ndarray = None) -> float:
         """
-        Evaluate the z-coordinate at a given t value.
+        Evaluate the CDF of the Bézier distribution at parameter ``t``.
+
+        Computes ``F(t) = B_z(t) = ∑ᵢ B_{n,i}(t) * zᵢ`` (Eq. 2 of the
+        paper). Returns a value in ``[0, 1]`` when control points satisfy
+        the CDF boundary conditions.
 
         Parameters
         ----------
         t : float
-            The parameter value at which to evaluate the curve (typically in [0, 1]).
-        controls_z : np.array, optional
-            An array of control points for the z-coordinate. Defaults to self.controls_z.
+            Parameter value in ``[0, 1]``.
+        controls_z : numpy.ndarray of shape (n + 1,), optional
+            z-coordinates of the control points. Defaults to
+            ``self.controls_z``.
 
         Returns
         -------
         float
-            The evaluated z-coordinate at t.
+            CDF value at parameter ``t``.
         """
         if controls_z is None:
             self._ensure_initialized()
@@ -208,22 +221,28 @@ class Bezierv:
 
     def root_find(self, x: float, method: str = 'brentq') -> float:
         """
-        Find t such that the Bezier curve's x-coordinate equals a given value.
+        Find the parameter ``t`` such that ``B_x(t) = x``.
 
-        This method solves for the root of the equation poly_x(t) - x = 0 using a specified root-finding
-        algorithm. The search is performed in the interval [0, 1].
+        Solves ``poly_x(t) - x = 0`` on ``[0, 1]`` using the specified
+        root-finding method.
 
         Parameters
         ----------
         x : float
-            The x-coordinate for which to find the corresponding parameter t.
+            Target x-coordinate within the support ``[controls_x[0],
+            controls_x[-1]]``.
         method : {'brentq', 'bisect'}, optional
-            The root-finding method to use. Default is 'brentq'.
+            Root-finding algorithm. Default is ``'brentq'``.
 
         Returns
         -------
         float
-            The parameter t in the interval [0, 1] such that poly_x(t) is approximately equal to x.
+            Parameter ``t`` in ``[0, 1]`` satisfying ``B_x(t) ≈ x``.
+
+        Raises
+        ------
+        ValueError
+            If the root-finder cannot bracket a root (``x`` outside support).
         """
         self._ensure_initialized()
         def poly_x_zero(t, x):
@@ -299,17 +318,20 @@ class Bezierv:
 
     def quantile(self, alpha: float, method: str = 'brentq') -> float:
         """
-        Compute the quantile function (inverse CDF) for a given probability level alpha.
+        Compute the quantile (inverse CDF) at probability level ``alpha``.
 
         Parameters
         ----------
         alpha : float
-            The probability level for which to compute the quantile (in [0, 1]).
+            Probability level in ``[0, 1]``.
+        method : {'brentq', 'bisect'}, optional
+            Root-finding algorithm used to invert the CDF. Default is
+            ``'brentq'``.
 
         Returns
         -------
         float
-            The quantile value corresponding to the given alpha.
+            ``x`` such that ``F(x) = alpha``.
         """
         self._ensure_initialized()
         def cdf_t(t, alpha):
@@ -323,17 +345,21 @@ class Bezierv:
 
     def pdf_t(self, t: float) -> float:
         """
-        Compute the probability density function (PDF) of the Bezier random variable with respect to t.
+        Evaluate the Bézier PDF at parameter ``t``.
+
+        Computes ``f(t) = B'_z(t) / B'_x(t)`` where the derivatives are
+        degree-``(n-1)`` Bézier curves in the differences ``Δzᵢ`` and
+        ``Δxᵢ`` (Section 2 of the paper).
 
         Parameters
         ----------
         t : float
-            The value at which to compute the PDF (in [0, 1]).
+            Parameter value in ``[0, 1]``.
 
         Returns
         -------
         float
-            The computed PDF value at t.
+            PDF value at ``t``.
         """
         self._ensure_initialized()
         n = self.n
@@ -364,17 +390,21 @@ class Bezierv:
 
     def pdf_numerator_t(self, t: float) -> float:
         """
-        Compute the numerator part of the PDF for the Bezier random variable with respect to t.
+        Evaluate the numerator of the Bézier PDF at parameter ``t``.
+
+        Computes ``B'_z(t) = ∑ᵢ B_{n-1,i}(t) * Δzᵢ``, the z-derivative
+        component of the PDF. Used internally when only the numerator is
+        needed (e.g. for MLE gradient computations).
 
         Parameters
         ----------
         t : float
-            The value at which to compute the PDF numerator (in [0, 1]).
+            Parameter value in ``[0, 1]``.
 
         Returns
         -------
         float
-            The numerator of the PDF at t.
+            Numerator ``B'_z(t)`` of the PDF at ``t``.
         """
         self._ensure_initialized()
         pdf_num_z = 0
@@ -384,17 +414,19 @@ class Bezierv:
 
     def get_mean(self, closed_form: bool=True) -> float:
         """
-        Compute and return the mean of the distribution.
+        Compute and cache the mean of the distribution.
 
         Parameters
         ----------
         closed_form : bool, optional
-            If True, use a closed-form solution for the mean. If False, compute it numerically (default is True).
+            If ``True`` (default), use the closed-form expression derived
+            from the Bézier curve properties. If ``False``, integrate
+            ``x * f(x)`` numerically over the support.
 
         Returns
         -------
         float
-            The mean value of the distribution.
+            Mean of the distribution.
         """
         self._ensure_initialized()
         if self.mean == np.inf:
@@ -408,15 +440,18 @@ class Bezierv:
                     total += self.comb[ell] * self.controls_x[ell] * inner_sum
                 self.mean = 0.5 * total
             else:
-                a, b = self.bounds
-                self.mean, _ = quad(lambda x: x * self.pdf_x(x), a, b) 
+                a, b = self.support
+                self.mean, _ = quad(lambda x: x * self.pdf_x(x), a, b)
         return self.mean
 
     def get_variance(self) -> float:
-        """Compute and return the variance of the distribution.
+        """
+        Compute and cache the variance of the distribution.
 
-        Returns:
-            float: The variance value of the distribution.
+        Returns
+        -------
+        float
+            Variance of the distribution.
         """
         self._ensure_initialized()
         if self.variance == np.inf:
@@ -429,10 +464,13 @@ class Bezierv:
         return self.variance
     
     def get_skewness(self) -> float:
-        """Compute and return the skewness of the distribution.
+        """
+        Compute and cache the skewness of the distribution.
 
-        Returns:
-            float: The skewness value of the distribution.
+        Returns
+        -------
+        float
+            Skewness of the distribution.
         """
         self._ensure_initialized()
         if self.skewness == np.inf:
@@ -444,10 +482,13 @@ class Bezierv:
         return self.skewness
 
     def get_kurtosis(self) -> float:
-        """Compute and return the kurtosis of the distribution.
+        """
+        Compute and cache the kurtosis of the distribution.
 
-        Returns:
-            float: The kurtosis value of the distribution.
+        Returns
+        -------
+        float
+            Kurtosis of the distribution.
         """
         self._ensure_initialized()
         if self.kurtosis == np.inf:
@@ -481,8 +522,8 @@ class Bezierv:
 
         Returns
         -------
-        np.array
-            An array of shape (n_sims,) containing the generated random samples from the Bezier random variable.
+        numpy.ndarray, shape (n_sims,)
+            Random samples drawn from the Bézier distribution.
         """
         self._ensure_initialized()
         rng = np.random.default_rng(rng)
@@ -493,19 +534,22 @@ class Bezierv:
         return samples
 
 
-    def plot_cdf(self, data: np.array=None, num_points: int=100, ax: plt.Axes=None, show: bool=True):
+    def plot_cdf(self, data: np.ndarray = None, num_points: int = 100, ax: plt.Axes = None, show: bool = True):
         """
-        Plot the cumulative distribution function (CDF) of the Bezier random variable alongside 
-        the empirical CDF (if data is provided).
+        Plot the Bézier CDF, optionally alongside the empirical CDF.
 
         Parameters
         ----------
         data : array-like, optional
-            The data points at which to evaluate and plot the CDF. If None, a linspace is used.
+            Observed sample. If provided, the empirical CDF is overlaid.
+            If ``None``, a linspace over the support is used.
         num_points : int, optional
-            The number of points to use in the linspace when data is not provided (default is 100).
+            Number of evaluation points when ``data`` is ``None``. Default
+            is ``100``.
         ax : matplotlib.axes.Axes, optional
-            The axes on which to plot the CDF. If None, the current axes are used.
+            Axes to plot on. Defaults to ``plt.gca()``.
+        show : bool, optional
+            If ``True`` (default), call ``plt.show()`` after plotting.
         """
         self._ensure_initialized()
         data_bool = True
@@ -535,18 +579,22 @@ class Bezierv:
         if show:
             plt.show()
 
-    def plot_pdf(self, data: np.array=None, num_points: int=100, ax: plt.Axes=None, show: bool=True):
+    def plot_pdf(self, data: np.ndarray = None, num_points: int = 100, ax: plt.Axes = None, show: bool = True):
         """
-        Plot the probability density function (PDF) of the Bezier random variable.
+        Plot the Bézier PDF.
 
         Parameters
         ----------
         data : array-like, optional
-            The data points at which to evaluate and plot the PDF. If None, a linspace is used.
+            Points at which to evaluate the PDF. If ``None``, a linspace
+            over the support is used.
         num_points : int, optional
-            The number of points to use in the linspace when data is not provided (default is 100).
+            Number of evaluation points when ``data`` is ``None``. Default
+            is ``100``.
         ax : matplotlib.axes.Axes, optional
-            The axes on which to plot the PDF. If None, the current axes are used.
+            Axes to plot on. Defaults to ``plt.gca()``.
+        show : bool, optional
+            If ``True`` (default), call ``plt.show()`` after plotting.
         """
         self._ensure_initialized()
         if data is None:
