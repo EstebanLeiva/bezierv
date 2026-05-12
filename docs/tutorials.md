@@ -53,7 +53,7 @@ mse_values = []
 
 for n in n_values:
     fitter = DistFit(wait_times, n=n)
-    _, mse = fitter.fit(method="projgrad")
+    _, mse = fitter.fit(method="mse", algorithm="projgrad")
     mse_values.append(mse)
     print(f"n={n}: MSE = {mse:.6f}")
 
@@ -76,7 +76,7 @@ print(f"Optimal n: {optimal_n}")
 ```python
 # Fit with optimal parameters
 fitter = DistFit(wait_times, n=optimal_n)
-bezier_rv, mse = fitter.fit(method="projgrad")
+bezier_rv, mse = fitter.fit(method="mse", algorithm="projgrad")
 
 print(f"Final MSE: {mse:.6f}")
 print(f"Control points (x): {bezier_rv.controls_x}")
@@ -176,10 +176,10 @@ test_times = np.random.lognormal(1, 0.5, 1000)  # Right-skewed
 
 # Fit Bézier distributions to each phase
 dev_fitter = DistFit(dev_times, n=5)
-dev_rv, _ = dev_fitter.fit(method="projgrad")
+dev_rv, _ = dev_fitter.fit(method="mse", algorithm="projgrad")
 
 test_fitter = DistFit(test_times, n=5)
-test_rv, _ = test_fitter.fit(method="projgrad")
+test_rv, _ = test_fitter.fit(method="mse", algorithm="projgrad")
 
 print("Phase distributions fitted successfully")
 ```
@@ -193,7 +193,7 @@ from bezierv.classes.convolver import Convolver
 convolver = Convolver([dev_rv, test_rv])
 
 # Method 1: Monte Carlo (fast)
-total_time_mc = convolver.convolve(n_sims=100, rng=42, n=6)
+total_time_mc, _ = convolver.convolve(n_sims=100, rng=42, n=6)
 
 print(f"Monte Carlo convolution completed")
 print(f"Expected total time: {total_time_mc.get_mean():.2f} days")

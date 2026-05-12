@@ -33,7 +33,7 @@ class Convolver:
                  rng: np.random.Generator | int | None = None,
                  **kwargs:Any) -> Bezierv:
         """
-        Convolve the Bezier RVs via Monte Carlo or numerical integration and fit a Bezierv to the sum.
+        Convolve the Bezier RVs via Monte Carlo and fit a Bezierv to the sum.
 
         Parameters
         ----------
@@ -45,10 +45,9 @@ class Convolver:
             Init options for DistFit(...):
                 n, init_x, init_z, init_t, emp_cdf_data, method_init_x
             Fit options for DistFit.fit(...):
-                method, step_size_PG, max_iter_PG, threshold_PG,
-                solver_NL, max_iter_NM
+                method, algorithm, options
         """
-        
+
         rng = np.random.default_rng(rng)
 
         bezierv_sum = np.zeros(n_sims)
@@ -59,10 +58,7 @@ class Convolver:
         init_keys = {
             "n", "init_x", "init_z", "init_t", "emp_cdf_data", "method_init_x"
         }
-        fit_keys = {
-            "method", "algorithm", "step_size_PG", "max_iter_PG", "threshold_PG",
-            "solver_NL", "max_iter_NM"
-        }
+        fit_keys = {"method", "algorithm", "options"}
 
         init_kwargs = {k: v for k, v in kwargs.items() if k in init_keys}
         fit_kwargs  = {k: v for k, v in kwargs.items() if k in fit_keys}
@@ -79,7 +75,7 @@ class Convolver:
                        n_points: int = 1000,
                        **kwargs) -> Bezierv:
         """
-        Perform exact convolution of two Bezier random variables using numerical integration.
+        Perform convolution of two Bezier random variables using numerical integration.
         
         This method generates a grid of points and computes the exact CDF at each point
         using the exact_cdf_two_bezierv method, then fits a Bezierv to the resulting CDF values.
@@ -92,13 +88,12 @@ class Convolver:
             Init options for DistFit(...):
                 n, init_x, init_z, init_t, emp_cdf_data, method_init_x
             Fit options for DistFit.fit(...):
-                method, step_size_PG, max_iter_PG, threshold_PG,
-                solver_NL, max_iter_NM
-                
+                method, algorithm, options
+
         Returns
         -------
         Bezierv
-            The fitted Bezierv representing the exact convolution.
+            The fitted Bezierv representing the convolution.
             
         Raises
         ------
@@ -122,11 +117,8 @@ class Convolver:
         init_keys = {
             "n", "init_x", "init_z", "init_t", "emp_cdf_data", "method_init_x"
         }
-        fit_keys = {
-            "method", "algorithm", "step_size_PG", "max_iter_PG", "threshold_PG",
-            "solver_NL", "max_iter_NM"
-        }
-        
+        fit_keys = {"method", "algorithm", "options"}
+
         init_kwargs = {k: v for k, v in kwargs.items() if k in init_keys}
         fit_kwargs = {k: v for k, v in kwargs.items() if k in fit_keys}
         

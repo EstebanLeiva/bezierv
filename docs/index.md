@@ -70,11 +70,11 @@ import matplotlib.pyplot as plt
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
 # Plot CDF comparison
-bezier_rv.plot_cdf(data, ax=ax1)
+bezier_rv.plot_cdf(data, ax=ax1, show=False)
 ax1.set_title("Cumulative Distribution Function")
 
 # Plot PDF
-bezier_rv.plot_pdf(ax=ax2)
+bezier_rv.plot_pdf(ax=ax2, show=False)
 ax2.set_title("Probability Density Function")
 
 plt.tight_layout()
@@ -144,32 +144,39 @@ print(f"Sum mean: {sum_rv.get_mean():.3f}")
 
 Choose the best algorithm for your use case:
 
-| Objective | Algorithm | Call |
-|-----------|-----------|------|
-| **MSE** | Projected Gradient | `method='mse', algorithm='projgrad'` |
-| **MSE** | Nonlinear Optimization | `method='mse', algorithm='nonlinear'` |
-| **MSE** | Nelder-Mead | `method='mse', algorithm='neldermead'` |
-| **MLE** | Primal Gradient | `method='mle'` |
+| Objective | Algorithm | Call | Options class |
+|-----------|-----------|------|---------------|
+| **MSE** | Projected Gradient | `method='mse', algorithm='projgrad'` | `ProjGradOptions` |
+| **MSE** | Nonlinear Optimization | `method='mse', algorithm='nonlinear'` | `NonLinearOptions` |
+| **MSE** | Nelder-Mead | `method='mse', algorithm='neldermead'` | `NelderMeadOptions` |
+| **MLE** | Primal Gradient | `method='mle'` | `MLEOptions` |
+
+Algorithm-specific tunables (step sizes, iteration caps, solver choice, tolerances) live on small
+dataclasses passed via the `options` argument. Omit it to use the defaults.
 
 ### Algorithm Comparison Example
 
 ```python
 import numpy as np
 from bezierv import DistFit
+from bezierv.classes.distfit import ProjGradOptions, NelderMeadOptions, MLEOptions
 
 rng = np.random.default_rng(42)
 data = rng.beta(2, 5, 1000)
 
-# MSE-based algorithms
-mse_algorithms = ["projgrad", "nonlinear", "neldermead"]
-for algo in mse_algorithms:
+# MSE-based algorithms (nonlinear is excluded)
+mse_jobs = [
+    ("projgrad",   ProjGradOptions(max_iter=2000)),
+    ("neldermead", NelderMeadOptions()),
+]
+for algo, opts in mse_jobs:
     fitter = DistFit(data, n=5)
-    bz, mse = fitter.fit(method='mse', algorithm=algo)
+    bz, mse = fitter.fit(method='mse', algorithm=algo, options=opts)
     print(f"mse/{algo:12s}: MSE = {mse:.6f}, Mean = {bz.get_mean():.4f}")
 
-# MLE fitting
+# MLE fitting with a tighter tolerance
 fitter = DistFit(data, n=5)
-bz_mle, nll = fitter.fit(method='mle')
+bz_mle, nll = fitter.fit(method='mle', options=MLEOptions(tol=1e-6))
 print(f"mle/primgrad  : NLL = {nll:.6f}, Mean = {bz_mle.get_mean():.4f}")
 ```
 
@@ -190,7 +197,7 @@ data_bimodal = np.concatenate([
 
 # Use more control points for complex shapes
 fitter = DistFit(data_bimodal, n=10)
-bimodal_rv, mse = fitter.fit(method='mse', algorithm='nonlinear')
+bimodal_rv, mse = fitter.fit(method='mse', algorithm='nonlinear')  # uses NonLinearOptions defaults
 
 # Visualize the complex fit
 bimodal_rv.plot_pdf()

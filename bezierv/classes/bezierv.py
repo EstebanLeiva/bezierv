@@ -27,7 +27,7 @@ class Bezierv:
             Degree of the Bézier curve. The curve has ``n + 1`` control
             points (paper notation: degree-``n`` Bézier distribution).
         controls_x : array-like of shape (n + 1,), optional
-            x-coordinates of the control points. Must be non-decreasing.
+            x-coordinates of the control points. Must be strictly increasing.
             If ``None``, a zero array is created (placeholder state).
         controls_z : array-like of shape (n + 1,), optional
             z-coordinates (CDF values) of the control points. Must be
@@ -54,14 +54,9 @@ class Bezierv:
             x-coordinates of the control points.
         controls_z : numpy.ndarray, shape (n + 1,)
             z-coordinates of the control points.
-        mean : float
-            Mean of the distribution; ``np.inf`` until computed.
-        variance : float
-            Variance; ``np.inf`` until computed.
-        skewness : float
-            Skewness; ``np.inf`` until computed.
-        kurtosis : float
-            Kurtosis; ``np.inf`` until computed.
+        raw_moments : dict[int, float]
+            Cache of computed raw moments ``E[X^r]`` keyed by order ``r``.
+            Cleared by ``update_bezierv``.
         """
         self.n = n
         self.deltas_x = np.zeros(n)
@@ -84,10 +79,7 @@ class Bezierv:
         else:
             raise ValueError('Either all or none of the parameters controls_x and controls_z must be provided')
 
-        self.mean = np.inf
-        self.variance = np.inf
-        self.skewness = np.inf
-        self.kurtosis = np.inf
+        self.raw_moments: dict[int, float] = {}
 
         self.combinations()
         self.deltas()
@@ -101,7 +93,7 @@ class Bezierv:
         Parameters
         ----------
         controls_x : array-like of shape (n + 1,)
-            New x-coordinates of the control points. Must be non-decreasing.
+            New x-coordinates of the control points. Must be strictly increasing.
         controls_z : array-like of shape (n + 1,)
             New z-coordinates of the control points. Must be non-decreasing.
         """
@@ -113,6 +105,7 @@ class Bezierv:
         self.controls_x = controls_x
         self.controls_z = controls_z
         self.support = (controls_x[0], controls_x[-1])
+        self.raw_moments = {}
 
         self.deltas()
 
@@ -412,92 +405,67 @@ class Bezierv:
             pdf_num_z += self.bernstein(t, i, self.comb_minus, self.n - 1) * self.deltas_z[i]
         return pdf_num_z
 
-    def get_mean(self, closed_form: bool=True) -> float:
+    def get_raw_moment(self, r: int) -> float:
         """
-        Compute and cache the mean of the distribution.
+        Compute and cache the raw moment ``E[X^r]`` of the distribution.
+
+        ``r = 1`` uses the closed-form expression derived from the Bézier
+        curve properties; ``r >= 2`` integrates ``x^r * f(x)`` numerically
+        over the support via :func:`scipy.integrate.quad`.
 
         Parameters
         ----------
-        closed_form : bool, optional
-            If ``True`` (default), use the closed-form expression derived
-            from the Bézier curve properties. If ``False``, integrate
-            ``x * f(x)`` numerically over the support.
+        r : int
+            Order of the raw moment (``r >= 1``).
 
         Returns
         -------
         float
-            Mean of the distribution.
+            ``E[X^r]``.
         """
         self._ensure_initialized()
-        if self.mean == np.inf:
-            if closed_form:
-                total = 0.0
-                for ell in range(self.n + 1):
-                    inner_sum = 0.0
-                    for i in range(self.n):
-                        denom = math.comb(2 * self.n - 1, ell + i)
-                        inner_sum += (self.comb_minus[i] / denom) * self.deltas_z[i]
-                    total += self.comb[ell] * self.controls_x[ell] * inner_sum
-                self.mean = 0.5 * total
-            else:
-                a, b = self.support
-                self.mean, _ = quad(lambda x: x * self.pdf_x(x), a, b)
-        return self.mean
+        if r in self.raw_moments:
+            return self.raw_moments[r]
+        if r == 1:
+            total = 0.0
+            for ell in range(self.n + 1):
+                inner_sum = 0.0
+                for i in range(self.n):
+                    denom = math.comb(2 * self.n - 1, ell + i)
+                    inner_sum += (self.comb_minus[i] / denom) * self.deltas_z[i]
+                total += self.comb[ell] * self.controls_x[ell] * inner_sum
+            value = 0.5 * total
+        else:
+            a, b = self.support
+            value, _ = quad(lambda x: x**r * self.pdf_x(x), a, b)
+        self.raw_moments[r] = value
+        return value
+
+    def get_mean(self) -> float:
+        """Mean ``E[X]`` (closed form)."""
+        return self.get_raw_moment(1)
 
     def get_variance(self) -> float:
-        """
-        Compute and cache the variance of the distribution.
+        """Variance ``E[X^2] - E[X]^2``."""
+        m1 = self.get_raw_moment(1)
+        return self.get_raw_moment(2) - m1**2
 
-        Returns
-        -------
-        float
-            Variance of the distribution.
-        """
-        self._ensure_initialized()
-        if self.variance == np.inf:
-            a, b = self.support
-            E_x2, _ = quad(lambda x: (x)**2 * self.pdf_x(x), a, b)
-            if self.mean == np.inf:
-                self.variance = E_x2 - self.get_mean()**2
-            else:
-                self.variance = E_x2 - self.mean**2
-        return self.variance
-    
     def get_skewness(self) -> float:
-        """
-        Compute and cache the skewness of the distribution.
-
-        Returns
-        -------
-        float
-            Skewness of the distribution.
-        """
-        self._ensure_initialized()
-        if self.skewness == np.inf:
-            a, b = self.support
-            E_x3, _ = quad(lambda x: (x)**3 * self.pdf_x(x), a, b)
-            mu = self.get_mean()
-            sigma = math.sqrt(self.get_variance())
-            self.skewness = (E_x3 - 3 * mu * sigma**2 - mu**3) / (sigma**3)
-        return self.skewness
+        """Skewness ``E[(X - μ)^3] / σ^3``."""
+        m1 = self.get_raw_moment(1)
+        var = self.get_raw_moment(2) - m1**2
+        return (self.get_raw_moment(3) - 3 * m1 * var - m1**3) / var**1.5
 
     def get_kurtosis(self) -> float:
-        """
-        Compute and cache the kurtosis of the distribution.
-
-        Returns
-        -------
-        float
-            Kurtosis of the distribution.
-        """
-        self._ensure_initialized()
-        if self.kurtosis == np.inf:
-            a, b = self.support
-            E_x4, _ = quad(lambda x: (x)**4 * self.pdf_x(x), a, b)
-            mu = self.get_mean()
-            sigma = math.sqrt(self.get_variance())
-            self.kurtosis = (E_x4 - 4 * mu * (E_x4 - 3 * mu * sigma**2 - mu**3) - 6 * mu**2 * sigma**2 - mu**4) / (sigma**4)
-        return self.kurtosis
+        """Kurtosis ``E[(X - μ)^4] / σ^4`` (Pearson, not excess)."""
+        m1 = self.get_raw_moment(1)
+        var = self.get_raw_moment(2) - m1**2
+        return (
+            self.get_raw_moment(4)
+            - 4 * m1 * self.get_raw_moment(3)
+            + 6 * m1**2 * var
+            + 3 * m1**4
+        ) / var**2
     
     def random(self, 
                n_sims: int,
@@ -623,8 +591,8 @@ class Bezierv:
             raise ValueError(f"controls arrays must have length n+1 (= {self.n + 1}).")
 
     def _validate_ordering(self, controls_x, controls_z):
-        if np.any(np.diff(controls_x) < 0):
-            raise ValueError("controls_x must be nondecreasing.")
+        if np.any(np.diff(controls_x) <= 0):
+            raise ValueError("controls_x must be strictly increasing.")
         if np.any(np.diff(controls_z) < 0):
             raise ValueError("controls_z must be nondecreasing.")
 

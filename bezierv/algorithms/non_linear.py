@@ -1,7 +1,8 @@
+import warnings
 import pyomo.environ as pyo
 import numpy as np
 from bezierv.classes.bezierv import Bezierv
-from pyomo.opt import SolverFactory, SolverStatus, TerminationCondition
+from pyomo.opt import SolverFactory, TerminationCondition
 
 def fit(n: int,
         m: int,
@@ -11,7 +12,8 @@ def fit(n: int,
         init_z: np.ndarray,
         init_t: np.ndarray,
         emp_cdf_data: np.ndarray,
-        solver: str) -> tuple[Bezierv, float]:
+        solver: str,
+        solver_options: dict = None) -> tuple[Bezierv, float]:
     """
     Fit a Bézier distribution via a nonlinear programming solver (e.g. IPOPT).
 
@@ -38,6 +40,12 @@ def fit(n: int,
         Empirical CDF values at each observation.
     solver : str
         Name of the NLP solver recognized by Pyomo (e.g. ``'ipopt'``).
+    solver_options : dict, optional
+        Keyword arguments forwarded to ``pyo_solver.solve(model, **solver_options)``.
+        Supports Pyomo's ``solve`` kwargs (e.g. ``tee``, ``timelimit``) and
+        solver-native options nested under the ``options`` key
+        (e.g. ``{'timelimit': 60, 'tee': False, 'options': {'max_iter': 5000, 'tol': 1e-8}}``
+        for IPOPT). Defaults to ``None``.
 
     Returns
     -------
@@ -50,8 +58,8 @@ def fit(n: int,
     Raises
     ------
     Exception
-        Prints a message if the solver raises during model evaluation;
-        does not re-raise.
+        Any exception raised by the Pyomo solver call is propagated to
+        the caller unchanged.
 
     Notes
     -----
@@ -148,15 +156,34 @@ def fit(n: int,
  
     # Set solver
     pyo_solver = SolverFactory(solver)
+    results = pyo_solver.solve(model, **(solver_options or {}))
+
+    acceptable = {
+        TerminationCondition.optimal,
+        TerminationCondition.locallyOptimal,
+        TerminationCondition.feasible,
+        TerminationCondition.maxIterations,
+        TerminationCondition.maxTimeLimit,
+    }
+
+    tc = results.solver.termination_condition
     mse = np.nan
-    try:
-        results = pyo_solver.solve(model, tee=False, timelimit=60)
-        if (results.solver.status == SolverStatus.ok) and (results.solver.termination_condition == TerminationCondition.optimal):
-            controls_x = np.array([model.x[i]() for i in model.N])
-            controls_z = np.array([model.z[i]() for i in model.N])
-            mse = model.mse()
-            bezierv.update_bezierv(controls_x, controls_z)
-    except Exception as e:
-        print("NonLinearSolver [fit]: An exception occurred during model evaluation:", e)
+    if tc in acceptable:
+        if tc != TerminationCondition.optimal:
+            warnings.warn(
+                f"Solver did not reach optimality (termination: {tc}); "
+                f"returning best incumbent solution.",
+                RuntimeWarning,
+            )
+        controls_x = np.array([model.x[i]() for i in model.N])
+        controls_z = np.array([model.z[i]() for i in model.N])
+        mse = model.mse()
+        bezierv.update_bezierv(controls_x, controls_z)
+    else:
+        warnings.warn(
+            f"Solver failed (status={results.solver.status}, termination={tc}); "
+            f"bezierv unchanged.",
+            RuntimeWarning,
+        )
 
     return bezierv, mse

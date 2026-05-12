@@ -139,8 +139,10 @@ def solve_lambda_safeguarded(alpha: np.ndarray,
     phi_a = phi(a)
     iter_a = 0
     while not (phi_a > 1) and iter_a < 10:
-        a = -s + eps * 1e-1
+        eps *= 1e-1
+        a = -s + eps
         phi_a = phi(a) 
+        iter_a += 1
 
     delta = 1e-8
     b = m * n - s + delta

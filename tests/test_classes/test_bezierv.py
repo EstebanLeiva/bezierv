@@ -55,5 +55,5 @@ def test_plot_functions_do_not_crash(linear_bezierv):
     bz = linear_bezierv
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots()
-    bz.plot_cdf(ax=ax)
-    bz.plot_pdf(ax=ax)
+    bz.plot_cdf(ax=ax, show=False)
+    bz.plot_pdf(ax=ax, show=False)

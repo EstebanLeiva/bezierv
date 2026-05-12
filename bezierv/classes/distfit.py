@@ -1,13 +1,44 @@
 import numpy as np
 import copy
+from dataclasses import dataclass, field
 from bezierv.classes.bezierv import Bezierv
-from typing import List
+from typing import List, Union
 from statsmodels.distributions.empirical_distribution import ECDF
 from bezierv.algorithms import proj_grad as pg
 from bezierv.algorithms import non_linear as nl
 from bezierv.algorithms import nelder_mead as nm
 from bezierv.algorithms import utils as utils
 from bezierv.algorithms import primal_grad as primg
+
+
+@dataclass
+class ProjGradOptions:
+    step_size: float = 0.001
+    max_iter: int = 1000
+    threshold: float = 1e-3
+
+
+@dataclass
+class NonLinearOptions:
+    solver: str = 'ipopt'
+    solver_options: dict = field(default_factory=lambda: {'timelimit': 60, 'tee': False})
+
+
+@dataclass
+class NelderMeadOptions:
+    max_iter: int = 1000
+
+
+@dataclass
+class MLEOptions:
+    max_iter: int = 1000
+    tol: float = 1e-3
+    tol_res_root: float = 1e-5
+    tol_lambda_root: float = 1e-5
+    max_iters_root: int = 100
+
+
+FitOptions = Union[ProjGradOptions, NonLinearOptions, NelderMeadOptions, MLEOptions]
 
 
 class DistFit:
@@ -37,7 +68,7 @@ class DistFit:
     """
     def __init__(self, 
                  data: List, 
-                 n: int=5, 
+                 n: int=10, 
                  init_x: np.array=None, 
                  init_z: np.array=None,
                  init_t: np.array=None,
@@ -53,7 +84,7 @@ class DistFit:
         data : List
             The empirical data to fit the Bezier random variable to.
         n : int, optional
-            The number of control points minus one for the Bezier curve (default is 5).
+            The number of control points minus one for the Bezier curve (default is 10).
         init_x : np.array, optional
             Initial control points for the x-coordinates of the Bezier curve (default is None).
         init_z : np.array, optional
@@ -108,44 +139,27 @@ class DistFit:
     def fit(self,
             method: str='mse',
             algorithm: str='projgrad',
-            step_size_PG: float=0.001,
-            max_iter_PG: int=1000,
-            threshold_PG: float=1e-3,
-            solver_NL: str='ipopt',
-            max_iter_NM: int=1000,
-            max_iter: int=1000,
-            tol: float=1e-3,
-            tol_res_root: float=1e-5,
-            tol_lambda_root: float=1e-5,
-            max_iters_root: int=100) -> Bezierv:
+            options: FitOptions=None) -> Bezierv:
         """
         Fit the bezierv distribution to the data.
 
         Parameters
         ----------
         method : str, optional
-            The fitting method to use. Options are 'mse' for mean squared error or 'mle' for maximum likelihood estimation (default is 'mse').
+            The fitting method to use. Options are 'mse' for mean squared error
+            or 'mle' for maximum likelihood estimation (default is 'mse').
         algorithm : str, optional
-            The fitting algorithm to use. Options are 'projgrad', 'nonlinear', or 'neldermead'.
-            Default is 'projgrad'.
-        step_size_PG : float, optional
-            The step size for the projected gradient descent method (default is 0.001).
-        max_iter_PG : int, optional
-            The maximum number of iterations for the projected gradient descent method (default is 1000).
-        threshold_PG : float, optional
-            The convergence threshold for the projected gradient descent method (default is 1e-3).
-        solver_NL : str, optional
-            The solver to use for the nonlinear fitting method (default is 'ipopt').
-        max_iter_NM : int, optional
-            The maximum number of iterations for the Nelder-Mead optimization method (default is 1000).
-        tol : float, optional
-            The tolerance for convergence (default is 1e-3).
-        tol_res_root : float, optional
-            The tolerance for the root-finding in the primal gradient method (default is 1e-5).
-        tol_lambda_root : float, optional
-            The tolerance for the lambda root-finding in the primal gradient method (default is 1e-5).
-        max_iters_root : int, optional
-            The maximum number of iterations for the root-finding in the primal gradient method (default is 100).
+            The fitting algorithm to use when ``method='mse'``. Options are
+            'projgrad', 'nonlinear', or 'neldermead'. Ignored when
+            ``method='mle'``. Default is 'projgrad'.
+        options : FitOptions, optional
+            Algorithm-specific options. Must match the chosen method/algorithm:
+            ``ProjGradOptions`` for ('mse', 'projgrad'),
+            ``NonLinearOptions`` for ('mse', 'nonlinear'),
+            ``NelderMeadOptions`` for ('mse', 'neldermead'),
+            ``MLEOptions`` for ('mle'). Defaults to the matching dataclass
+            with its default field values.
+
         Returns
         -------
         Bezierv
@@ -153,62 +167,77 @@ class DistFit:
         """
         if method == 'mse':
             if algorithm == 'projgrad':
+                opts = options if options is not None else ProjGradOptions()
+                self._check_options(opts, ProjGradOptions)
                 self.bezierv, metric = pg.fit(
-                                                self.n,
-                                                self.bezierv, 
-                                                self.init_x, 
-                                                self.init_z, 
-                                                self.init_t,
-                                                self.emp_cdf_data, 
-                                                step_size_PG, 
-                                                max_iter_PG, 
-                                                threshold_PG)
+                    self.n,
+                    self.bezierv,
+                    self.init_x,
+                    self.init_z,
+                    self.init_t,
+                    self.emp_cdf_data,
+                    opts.step_size,
+                    opts.max_iter,
+                    opts.threshold)
                 self.mse = metric
             elif algorithm == 'nonlinear':
+                opts = options if options is not None else NonLinearOptions()
+                self._check_options(opts, NonLinearOptions)
                 self.bezierv, metric = nl.fit(
-                                                self.n,
-                                                self.m,
-                                                self.data,
-                                                self.bezierv,
-                                                self.init_x,
-                                                self.init_z,
-                                                self.init_t,
-                                                self.emp_cdf_data,
-                                                solver_NL)
+                    self.n,
+                    self.m,
+                    self.data,
+                    self.bezierv,
+                    self.init_x,
+                    self.init_z,
+                    self.init_t,
+                    self.emp_cdf_data,
+                    opts.solver,
+                    opts.solver_options)
                 self.mse = metric
-
             elif algorithm == 'neldermead':
+                opts = options if options is not None else NelderMeadOptions()
+                self._check_options(opts, NelderMeadOptions)
                 self.bezierv, metric = nm.fit(
-                                                self.n,
-                                                self.m,
-                                                self.data,
-                                                self.bezierv,
-                                                self.init_x,
-                                                self.init_z,
-                                                self.emp_cdf_data,
-                                                max_iter_NM)
+                    self.n,
+                    self.m,
+                    self.data,
+                    self.bezierv,
+                    self.init_x,
+                    self.init_z,
+                    self.emp_cdf_data,
+                    opts.max_iter)
                 self.mse = metric
             else:
                 raise ValueError("Algorithm not recognized. Use 'projgrad', 'nonlinear', or 'neldermead'.")
-            
+
         elif method == 'mle':
+            opts = options if options is not None else MLEOptions()
+            self._check_options(opts, MLEOptions)
             self.bezierv, metric = primg.fit(
-                                            self.n,
-                                            self.m,
-                                            self.bezierv,
-                                            self.init_x,
-                                            self.init_w,
-                                            self.init_t,
-                                            max_iter,
-                                            tol,
-                                            tol_res_root,
-                                            tol_lambda_root,
-                                            max_iters_root)
+                self.n,
+                self.m,
+                self.bezierv,
+                self.init_x,
+                self.init_w,
+                self.init_t,
+                opts.max_iter,
+                opts.tol,
+                opts.tol_res_root,
+                opts.tol_lambda_root,
+                opts.max_iters_root)
             self.nll = metric
         else:
             raise ValueError("Method not recognized. Use 'mse' or 'mle'.")
 
         return copy.copy(self.bezierv), metric
+
+    @staticmethod
+    def _check_options(options, expected):
+        if not isinstance(options, expected):
+            raise TypeError(
+                f"Expected options of type {expected.__name__}, got {type(options).__name__}."
+            )
     
     def get_controls_z(self) -> np.array:
         """

@@ -97,22 +97,72 @@ Fits Bézier distributions to empirical data using various optimization algorith
 
 ??? example "Fitting Example"
     ```python
-    from bezierv.classes.distfit import DistFit
+    from bezierv.classes.distfit import DistFit, ProjGradOptions
     import numpy as np
-    
+
     # Generate sample data
     data = np.random.gamma(2, 3, 500)
-    
-    # Fit Bézier distribution
+
+    # Fit Bézier distribution (defaults to MSE + projected gradient)
     fitter = DistFit(data, n=5)
-    bezier_rv, mse = fitter.fit(method="projgrad")
-    
+    bezier_rv, mse = fitter.fit(algorithm="projgrad")
+
+    # Or tune the algorithm via its options dataclass
+    bezier_rv, mse = fitter.fit(
+        algorithm="projgrad",
+        options=ProjGradOptions(step_size=5e-4, max_iter=2000, threshold=1e-4),
+    )
+
     print(f"Fit quality (MSE): {mse:.6f}")
-    
+
     # Visualize results
     bezier_rv.plot_cdf(data)
     bezier_rv.plot_pdf()
     ```
+
+### Fit Options
+
+Algorithm-specific tunables for [`DistFit.fit`](#bezierv.classes.distfit.DistFit.fit) are
+grouped into dataclasses. Pass an instance of the matching dataclass as the
+`options` argument; omit it to use the defaults.
+
+| Method + Algorithm           | Options class        | Fields (defaults)                                                                                |
+|------------------------------|----------------------|--------------------------------------------------------------------------------------------------|
+| `mse` + `projgrad`           | `ProjGradOptions`    | `step_size=0.001`, `max_iter=1000`, `threshold=1e-3`                                             |
+| `mse` + `nonlinear`          | `NonLinearOptions`   | `solver='ipopt'`, `solver_options={'timelimit': 60, 'tee': False}`                               |
+| `mse` + `neldermead`         | `NelderMeadOptions`  | `max_iter=1000`                                                                                  |
+| `mle`                        | `MLEOptions`         | `max_iter=1000`, `tol=1e-3`, `tol_res_root=1e-5`, `tol_lambda_root=1e-5`, `max_iters_root=100`   |
+
+```python
+from bezierv.classes.distfit import (
+    DistFit,
+    ProjGradOptions, NonLinearOptions, NelderMeadOptions, MLEOptions,
+)
+
+fitter = DistFit(data, n=5)
+
+# Defaults
+fitter.fit()
+
+# Nonlinear with IPOPT options; solver_options is forwarded as
+# ``pyo_solver.solve(model, **solver_options)`` — Pyomo ``solve`` kwargs
+# (``timelimit``, ``tee``) sit at the top level, solver-native options
+# under ``options``.
+fitter.fit(
+    algorithm="nonlinear",
+    options=NonLinearOptions(
+        solver="ipopt",
+        solver_options={"timelimit": 120, "tee": False, "options": {"max_iter": 5000, "tol": 1e-8}},
+    ),
+)
+
+# MLE with tighter tolerances
+fitter.fit(method="mle", options=MLEOptions(tol=1e-6, max_iter=5000))
+```
+
+!!! warning "Options type must match the algorithm"
+    Passing `ProjGradOptions` while selecting `algorithm="nonlinear"` raises
+    `TypeError`. The options class encodes the algorithm choice.
 
 ---
 
@@ -154,7 +204,7 @@ Computes convolutions (sums) of independent Bézier random variables using Monte
     # Compute convolution
     convolver = Convolver([rv1, rv2])
     
-    total_mc = convolver.convolve(n_sims=1000, rng=42)
+    total_mc, _ = convolver.convolve(n_sims=1000, rng=42)
     
     print(f"Expected total time (MC): {total_mc.get_mean():.2f}")
     ```

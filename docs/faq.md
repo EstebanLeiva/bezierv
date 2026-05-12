@@ -35,12 +35,12 @@ Use bezierv when:
 
 The number of control points (n+1) controls the flexibility of your distribution:
 
-- **n=2-3**: Simple unimodal distributions
-- **n=4-6**: Most real-world applications 
-- **n=7-10**: Complex multimodal distributions
-- **n>10**: Very complex shapes (risk of overfitting)
+- **n=5-7**: Simple unimodal distributions
+- **n=7-10**: Most real-world applications 
+- **n=10-15**: Complex multimodal distributions
+- **n>15**: Very complex shapes (risk of overfitting)
 
-**Rule of thumb**: Start with n=5 and adjust based on fit quality and complexity needs.
+**Rule of thumb**: Start with n=10 (the `DistFit` default) and adjust based on fit quality and complexity needs.
 
 ```python
 # Test different complexities
@@ -76,7 +76,7 @@ print(f"MSE: {mse:.6f}")
 
 ```python
 # Generate samples from fitted distribution
-synthetic_data = bezier_rv.random(n_samples=1000, rng=42)
+synthetic_data = bezier_rv.random(n_sims=1000, rng=42)
 ```
 
 ## Performance Questions
@@ -93,8 +93,8 @@ if len(data) > 10000:
 
 **2. Use faster algorithms:**
 ```python
-# projgrad is usually fastest
-fitter.fit(method="projgrad")
+# projgrad is usually fastest (and is the default algorithm)
+fitter.fit(method="mse", algorithm="projgrad")
 ```
 
 ## Still have questions?
