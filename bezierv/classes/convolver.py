@@ -5,19 +5,33 @@ from bezierv.classes.bezierv import Bezierv
 from typing import Any, List
 
 class Convolver:
+    """
+    Convolution of independent Bézier random variables.
+
+    Supports Monte Carlo convolution for any number of variables and 
+    exact convolution via numerical integration for the two-variable case.
+
+    Attributes
+    ----------
+    list_bezierv : List[Bezierv]
+        Bézier random variables to be convolved. Each element is validated
+        (lengths, ordering, initialization) at construction time.
+    """
     def __init__(self, list_bezierv: List[Bezierv]):
         """
-        Initialize a ConvBezier instance for convolving Bezier curves.
-
-        This constructor sets up the convolution object by storing the provided Bezierv
-        random variables, and creates a new Bezierv instance to hold the convolution 
-        result. It also initializes the number of data points to be used in the numerical
-        convolution process.
+        Initialize a Convolver from a list of Bézier random variables.
 
         Parameters
         ----------
         list_bezierv : List[Bezierv]
-            A list of Bezierv instances representing the Bezier random variables to be convolved.
+            Bézier random variables to be convolved.
+
+        Raises
+        ------
+        ValueError
+            If any element fails the length, ordering, or initialization
+            checks performed by :class:`~bezierv.classes.bezierv.Bezierv`.
+        
         """
         for bez in list_bezierv:
             bez._validate_lengths(bez.controls_x, bez.controls_z)
@@ -31,14 +45,18 @@ class Convolver:
                  n_sims: int = 1000,
                  *,
                  rng: np.random.Generator | int | None = None,
-                 **kwargs:Any) -> Bezierv:
+                 **kwargs:Any) -> tuple[Bezierv, float]:
         """
         Convolve the Bezier RVs via Monte Carlo and fit a Bezierv to the sum.
+                                                                                    
+        Draws ``n_sims`` samples from each Bézier RV in :attr:`list_bezierv`
+        using a shared PRNG stream, sums them, and fits a new Bézier random        
+        variable to the resulting sample via :class:`DistFit`.
 
         Parameters
         ----------
-        n_sims : int
-            Number of Monte Carlo samples.
+        n_sims : int, optional
+            Number of Monte Carlo samples. Default is ``1000``.
         rng : numpy.random.Generator | int | None, optional
             Shared PRNG stream for *all* sampling.
         **kwargs :
@@ -46,6 +64,20 @@ class Convolver:
                 n, init_x, init_z, init_t, emp_cdf_data, method_init_x
             Fit options for DistFit.fit(...):
                 method, algorithm, options
+
+        Returns
+        -------
+        bezierv : Bezierv
+            Bézier random variable fitted to the convolved sample.
+        metric : float
+            Final objective value reported by :meth:`DistFit.fit`
+            (MSE for ``method='mse'``, NLL for ``method='mle'``).
+
+        Raises
+        ------
+        TypeError
+            If ``kwargs`` contains a key that is not recognized as either a
+            ``DistFit`` init option or a ``DistFit.fit`` option.
         """
 
         rng = np.random.default_rng(rng)
@@ -56,7 +88,7 @@ class Convolver:
             bezierv_sum += samples
 
         init_keys = {
-            "n", "init_x", "init_z", "init_t", "emp_cdf_data", "method_init_x"
+            "n", "init_x", "init_z", "init_t", "init_w", "emp_cdf_data", "method_init_x"
         }
         fit_keys = {"method", "algorithm", "options"}
 
@@ -73,7 +105,7 @@ class Convolver:
     
     def convolve_exact(self, 
                        n_points: int = 1000,
-                       **kwargs) -> Bezierv:
+                       **kwargs) -> tuple[Bezierv, float]:
         """
         Perform convolution of two Bezier random variables using numerical integration.
         
@@ -92,8 +124,11 @@ class Convolver:
 
         Returns
         -------
-        Bezierv
+        bezierv: Bezierv
             The fitted Bezierv representing the convolution.
+        metric : float
+          Final objective value reported by :meth:`DistFit.fit`
+          (MSE for ``method='mse'``, NLL for ``method='mle'``).
             
         Raises
         ------
@@ -115,12 +150,16 @@ class Convolver:
             cdf_values[i] = self.exact_cdf_two_bezierv(z)
         
         init_keys = {
-            "n", "init_x", "init_z", "init_t", "emp_cdf_data", "method_init_x"
+            "n", "init_x", "init_z", "init_t", "init_w", "emp_cdf_data", "method_init_x"
         }
         fit_keys = {"method", "algorithm", "options"}
 
         init_kwargs = {k: v for k, v in kwargs.items() if k in init_keys}
         fit_kwargs = {k: v for k, v in kwargs.items() if k in fit_keys}
+
+        unknown = set(kwargs).difference(init_keys | fit_keys)
+        if unknown:
+            raise TypeError(f"Unknown keyword(s) for convolve_exact: {sorted(unknown)}")
         
         if 'emp_cdf_data' not in init_kwargs:
             init_kwargs['emp_cdf_data'] = cdf_values

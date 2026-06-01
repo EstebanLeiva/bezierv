@@ -104,10 +104,12 @@ Fits Bézier distributions to empirical data using various optimization algorith
     data = np.random.gamma(2, 3, 500)
 
     # Fit Bézier distribution (defaults to MSE + projected gradient)
+    # The step size defaults to η = 1/β with β = (2/m) λ_max(BᵀB), the
+    # Lipschitz constant of the MSE gradient — no manual tuning needed.
     fitter = DistFit(data, n=5)
     bezier_rv, mse = fitter.fit(algorithm="projgrad")
 
-    # Or tune the algorithm via its options dataclass
+    # Or override the automatic step size and other tunables
     bezier_rv, mse = fitter.fit(
         algorithm="projgrad",
         options=ProjGradOptions(step_size=5e-4, max_iter=2000, threshold=1e-4),
@@ -128,7 +130,7 @@ grouped into dataclasses. Pass an instance of the matching dataclass as the
 
 | Method + Algorithm           | Options class        | Fields (defaults)                                                                                |
 |------------------------------|----------------------|--------------------------------------------------------------------------------------------------|
-| `mse` + `projgrad`           | `ProjGradOptions`    | `step_size=0.001`, `max_iter=1000`, `threshold=1e-3`                                             |
+| `mse` + `projgrad`           | `ProjGradOptions`    | `step_size=None` (auto: ``η = 1/β``, ``β = (2/m) λ_max(BᵀB)``), `max_iter=1000`, `threshold=1e-3` |
 | `mse` + `nonlinear`          | `NonLinearOptions`   | `solver='ipopt'`, `solver_options={'timelimit': 60, 'tee': False}`                               |
 | `mse` + `neldermead`         | `NelderMeadOptions`  | `max_iter=1000`                                                                                  |
 | `mle`                        | `MLEOptions`         | `max_iter=1000`, `tol=1e-3`, `tol_res_root=1e-5`, `tol_lambda_root=1e-5`, `max_iters_root=100`   |
@@ -236,7 +238,9 @@ Fast and stable gradient-based optimization with projection onto the feasible re
 
 ### Nonlinear Optimization
 
-Robust scipy-based nonlinear solver for complex fitting problems.
+Pyomo-based nonlinear program solved with an external NLP solver
+(IPOPT by default). Recommended when fit accuracy matters more than
+speed and a suitable solver is available on the system.
 
 ::: bezierv.algorithms.non_linear
     handler: python
@@ -249,7 +253,12 @@ Robust scipy-based nonlinear solver for complex fitting problems.
       separate_signature: true
 
 !!! tip "When to Use"
-    Use when accuracy is more important.
+    Use when accuracy is more important than runtime, you can afford failures, and a Pyomo-compatible NLP solver such as IPOPT is installed.
+
+!!! note "Requires an external solver"
+    The default solver is `ipopt`. You must have it installed and available
+    on your `PATH` (or pass `NonLinearOptions(solver=...)` to use a
+    different Pyomo-compatible NLP solver).
 
 ---
 

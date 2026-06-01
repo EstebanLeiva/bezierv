@@ -184,7 +184,7 @@ def test_fit_solver_options_none_is_safe(monkeypatch):
     assert fake.last_solve_kwargs == {}
 
 
-def test_fit_warns_and_returns_nan_on_solver_failure(monkeypatch):
+def test_fit_raises_on_solver_failure(monkeypatch):
     p = _linear_problem()
     bez = p["bezierv"]
     original_x = bez.controls_x.copy()
@@ -196,12 +196,11 @@ def test_fit_warns_and_returns_nan_on_solver_failure(monkeypatch):
     )
     _install_fake_solver(monkeypatch, fake)
 
-    with pytest.warns(RuntimeWarning, match="Solver failed"):
-        bezierv, mse = nl.fit(solver="fake", **p)
+    with pytest.raises(RuntimeError, match="Solver failed"):
+        nl.fit(solver="fake", **p)
 
-    assert np.isnan(mse)
-    np.testing.assert_array_equal(bezierv.controls_x, original_x)
-    np.testing.assert_array_equal(bezierv.controls_z, original_z)
+    np.testing.assert_array_equal(bez.controls_x, original_x)
+    np.testing.assert_array_equal(bez.controls_z, original_z)
 
 
 def test_fit_propagates_solver_exception(monkeypatch):

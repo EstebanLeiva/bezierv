@@ -248,7 +248,7 @@ class Bezierv:
 
     def eval_t(self, t: float) -> tuple[float, float]:
         """
-        Evaluate the CDF of the Bezier random variable at a given parameter value t.
+        Evaluate the Bezier random variable at a given parameter value t.
 
         Parameters
         ----------
@@ -271,7 +271,7 @@ class Bezierv:
 
     def eval_x(self, x: float) -> tuple[float, float]:
         """
-        Evaluate the CDF of the Bezier random variable at a given x-coordinate.
+        Evaluate the Bezier random variable at a given x-coordinate.
 
         Parameters
         ----------
@@ -791,12 +791,7 @@ class InteractiveBezierv:
                 else:
                     final_x, final_z = zip(*sorted_points)
                     final_x, final_z = list(final_x), list(final_z)
-
-                    #
                     final_z = sorted(list(final_z))
-
-                #if final_z != sorted(final_z):
-                #    raise ValueError("Control points' y-values must be in non-decreasing order.")
 
             if len(final_x) < 2:
                 raise ValueError("At least two control points are required.")

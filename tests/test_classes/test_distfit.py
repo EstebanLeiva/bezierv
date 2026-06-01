@@ -31,10 +31,11 @@ def test_fit_nonlinear_dispatch(normal_data, monkeypatch):
     opts = NonLinearOptions()
     captured = {}
 
-    def fake_fit(n, m, data, bezierv, init_x, init_z, init_t, emp_cdf_data, solver, solver_options):
+    def fake_fit(n, m, data, bezierv, init_x, init_z, init_t, emp_cdf_data, solver, solver_options, feas_tol):
         captured.update(
             n=n, m=m, data=data, bezierv=bezierv, init_x=init_x, init_z=init_z,
             init_t=init_t, emp_cdf_data=emp_cdf_data, solver=solver, solver_options=solver_options,
+            feas_tol=feas_tol,
         )
         return bezierv, 0.123
 
@@ -54,6 +55,7 @@ def test_fit_nonlinear_dispatch(normal_data, monkeypatch):
     assert captured["emp_cdf_data"] is df.emp_cdf_data
     assert captured["solver"] == opts.solver
     assert captured["solver_options"] == opts.solver_options
+    assert captured["feas_tol"] == opts.feas_tol
 
 
 def test_bad_method_raises(normal_data):

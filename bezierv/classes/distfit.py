@@ -2,7 +2,7 @@ import numpy as np
 import copy
 from dataclasses import dataclass, field
 from bezierv.classes.bezierv import Bezierv
-from typing import List, Union
+from typing import List, Optional, Union
 from statsmodels.distributions.empirical_distribution import ECDF
 from bezierv.algorithms import proj_grad as pg
 from bezierv.algorithms import non_linear as nl
@@ -13,7 +13,7 @@ from bezierv.algorithms import primal_grad as primg
 
 @dataclass
 class ProjGradOptions:
-    step_size: float = 0.001
+    step_size: Optional[float] = None
     max_iter: int = 1000
     threshold: float = 1e-3
 
@@ -22,6 +22,7 @@ class ProjGradOptions:
 class NonLinearOptions:
     solver: str = 'ipopt'
     solver_options: dict = field(default_factory=lambda: {'timelimit': 60, 'tee': False})
+    feas_tol: float = 1e-4
 
 
 @dataclass
@@ -57,6 +58,8 @@ class DistFit:
         Initial control points for the z-coordinates of the Bezier curve.
     init_t : np.array
         Initial parameter values.
+    init_w : np.array
+        Initial weight vector on the probability simplex.
     emp_cdf_data : np.array
         The empirical cumulative distribution function (CDF) data derived from the empirical data.
     bezierv : Bezierv
@@ -65,6 +68,8 @@ class DistFit:
         The number of empirical data points.
     mse : float
         The mean squared error of the fit, initialized to infinity.
+    nll : float
+        The negative log-likelihood of the fit, initialized to infinity.
     """
     def __init__(self, 
                  data: List, 
@@ -89,6 +94,10 @@ class DistFit:
             Initial control points for the x-coordinates of the Bezier curve (default is None).
         init_z : np.array, optional
             Initial control points for the z-coordinates of the Bezier curve (default is None).
+        init_t : np.array, optional
+            Initial parameter values (default is None).
+        init_w : np.array, optional
+            Initial weight vector on the probability simplex (default is None).
         emp_cdf_data : np.array, optional
             The empirical cumulative distribution function (CDF) data derived from the empirical data (default is None).
         method_init_x : str, optional
@@ -139,7 +148,7 @@ class DistFit:
     def fit(self,
             method: str='mse',
             algorithm: str='projgrad',
-            options: FitOptions=None) -> Bezierv:
+            options: FitOptions=None) -> tuple[Bezierv, float]:
         """
         Fit the bezierv distribution to the data.
 
@@ -162,8 +171,12 @@ class DistFit:
 
         Returns
         -------
-        Bezierv
-            The fitted Bezierv instance with updated control points.
+        bezierv : Bezierv
+          A copy of the fitted Bezierv instance with updated control points.
+        metric : float                                                             
+          Final value of the objective:
+          mean squared error when ``method='mse'``, or                           
+          negative log-likelihood when ``method='mle'``.  
         """
         if method == 'mse':
             if algorithm == 'projgrad':
@@ -193,7 +206,8 @@ class DistFit:
                     self.init_t,
                     self.emp_cdf_data,
                     opts.solver,
-                    opts.solver_options)
+                    opts.solver_options,
+                    feas_tol=opts.feas_tol)
                 self.mse = metric
             elif algorithm == 'neldermead':
                 opts = options if options is not None else NelderMeadOptions()
@@ -242,6 +256,11 @@ class DistFit:
     def get_controls_z(self) -> np.array:
         """
         Compute the control points for the z-coordinates of the Bezier curve.
+
+        Returns
+        -------
+        np.array
+            The control points for the z-coordinates of the Bezier curve, evenly spaced between 0 and 1.
         """
         controls_z = np.linspace(0, 1, self.n + 1)
         return controls_z

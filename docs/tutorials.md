@@ -224,7 +224,7 @@ curdoc().add_root(editor.layout)
 curdoc().title = "Bézier Distribution Explorer"
 ```
 
-Run with: `bokeh serve --show interactive_demo.py`
+Run with: `python -m bokeh serve --show interactive_demo.py`
 
 ### Step 2: Interactive Features
 
@@ -232,9 +232,8 @@ In the browser interface, you can:
 
 1. **Drag control points** to see real-time changes
 2. **Add points** by clicking in empty areas
-3. **Delete points** by dragging them off the plot
-4. **Edit coordinates** precisely in the data table
-5. **Download configurations** as CSV files
+3. **Delete points** by pressing delete button
+4. **Download configurations** as CSV files
 
 ## Next Steps
 

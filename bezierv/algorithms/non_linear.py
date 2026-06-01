@@ -4,6 +4,40 @@ import numpy as np
 from bezierv.classes.bezierv import Bezierv
 from pyomo.opt import SolverFactory, TerminationCondition
 
+def _max_infeasibility(model) -> tuple[float, float]:
+    """
+    Return ``(max_constraint_violation, max_bound_violation)`` for ``model``.
+
+    Iterates all active constraints and variables and returns the worst
+    absolute violation found. Used to verify that an incumbent returned by
+    the NLP solver (e.g. on ``maxIterations`` / ``maxTimeLimit``) actually
+    satisfies the problem before it is trusted.
+    """
+    max_ctr = 0.0
+    for ctr in model.component_data_objects(pyo.Constraint, active=True):
+        body = pyo.value(ctr.body)
+        if ctr.lower is not None:
+            lower = pyo.value(ctr.lower)
+            if body < lower:
+                max_ctr = max(max_ctr, lower - body)
+        if ctr.upper is not None:
+            upper = pyo.value(ctr.upper)
+            if body > upper:
+                max_ctr = max(max_ctr, body - upper)
+
+    max_bnd = 0.0
+    for var in model.component_data_objects(pyo.Var, active=True):
+        v = var.value
+        if v is None:
+            continue
+        if var.lb is not None and v < var.lb:
+            max_bnd = max(max_bnd, var.lb - v)
+        if var.ub is not None and v > var.ub:
+            max_bnd = max(max_bnd, v - var.ub)
+
+    return max_ctr, max_bnd
+
+
 def fit(n: int,
         m: int,
         data: np.ndarray,
@@ -13,9 +47,10 @@ def fit(n: int,
         init_t: np.ndarray,
         emp_cdf_data: np.ndarray,
         solver: str,
-        solver_options: dict = None) -> tuple[Bezierv, float]:
+        solver_options: dict = None,
+        feas_tol: float = 1e-4) -> tuple[Bezierv, float]:
     """
-    Fit a Bézier distribution via a nonlinear programming solver (e.g. IPOPT).
+    Fit a Bézier distribution via an external solver (e.g. IPOPT).
 
     Formulates the minimum-error estimation problem as a Pyomo
     ``ConcreteModel`` and solves it with the specified NLP solver.
@@ -46,6 +81,12 @@ def fit(n: int,
         solver-native options nested under the ``options`` key
         (e.g. ``{'timelimit': 60, 'tee': False, 'options': {'max_iter': 5000, 'tol': 1e-8}}``
         for IPOPT). Defaults to ``None``.
+    feas_tol : float, optional
+        Maximum allowed constraint or bound violation when accepting an
+        incumbent solution from a non-optimal termination (e.g.
+        ``maxIterations``, ``maxTimeLimit``). If the worst violation
+        exceeds this tolerance, a :class:`RuntimeError` is raised.
+        Defaults to ``1e-4``, matching IPOPT's ``constr_viol_tol`` default.
 
     Returns
     -------
@@ -57,6 +98,12 @@ def fit(n: int,
 
     Raises
     ------
+    RuntimeError
+        If the solver returns a non-optimal acceptable termination
+        (``maxIterations``, ``maxTimeLimit``, ``locallyOptimal``,
+        ``feasible``) but the incumbent violates the constraints or
+        variable bounds by more than ``feas_tol``, or if the solver
+        terminates with any other (non-acceptable) status.
     Exception
         Any exception raised by the Pyomo solver call is propagated to
         the caller unchanged.
@@ -170,6 +217,14 @@ def fit(n: int,
     mse = np.nan
     if tc in acceptable:
         if tc != TerminationCondition.optimal:
+            max_ctr_viol, max_bnd_viol = _max_infeasibility(model)
+            if max(max_ctr_viol, max_bnd_viol) > feas_tol:
+                raise RuntimeError(
+                    f"Solver terminated with '{tc}' but the incumbent is "
+                    f"infeasible: max constraint violation = {max_ctr_viol:.3e}, "
+                    f"max bound violation = {max_bnd_viol:.3e} "
+                    f"(feas_tol = {feas_tol:.3e})."
+                )
             warnings.warn(
                 f"Solver did not reach optimality (termination: {tc}); "
                 f"returning best incumbent solution.",
@@ -180,10 +235,9 @@ def fit(n: int,
         mse = model.mse()
         bezierv.update_bezierv(controls_x, controls_z)
     else:
-        warnings.warn(
+        raise RuntimeError(
             f"Solver failed (status={results.solver.status}, termination={tc}); "
-            f"bezierv unchanged.",
-            RuntimeWarning,
+            f"bezierv unchanged."
         )
 
     return bezierv, mse

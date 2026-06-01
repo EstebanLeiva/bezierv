@@ -268,7 +268,8 @@ def fit(n: int,
     max_iter : int
         Maximum number of primal gradient iterations.
     tol : float
-        Convergence tolerance on ``‖w_{k+1} - w_k‖``.
+        Convergence tolerance on the relative change
+        ``‖w_{k+1} - w_k‖ / max(1, ‖w_k‖)``.
     tol_res_root : float
         Residual tolerance for the inner dual solve.
     tol_lambda_root : float
@@ -290,7 +291,7 @@ def fit(n: int,
     for i in range(max_iter):
         g = grad(A, w)
         w_next = primal_update_w(w, g, n, m, tol_res_root, tol_lambda_root, max_iters_root)
-        if np.linalg.norm(w_next - w) < tol:
+        if np.linalg.norm(w_next - w) / max(1.0, np.linalg.norm(w)) < tol:
             w = w_next
             break
         w = w_next
