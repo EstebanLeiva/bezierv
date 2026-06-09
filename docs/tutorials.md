@@ -53,7 +53,7 @@ mse_values = []
 
 for n in n_values:
     fitter = DistFit(wait_times, n=n)
-    _, mse = fitter.fit(method="mse", algorithm="projgrad")
+    _, mse = fitter.fit(method="mse", algorithm="projected_gradient")
     mse_values.append(mse)
     print(f"n={n}: MSE = {mse:.6f}")
 
@@ -76,7 +76,7 @@ print(f"Optimal n: {optimal_n}")
 ```python
 # Fit with optimal parameters
 fitter = DistFit(wait_times, n=optimal_n)
-bezier_rv, mse = fitter.fit(method="mse", algorithm="projgrad")
+bezier_rv, mse = fitter.fit(method="mse", algorithm="projected_gradient")
 
 print(f"Final MSE: {mse:.6f}")
 print(f"Control points (x): {bezier_rv.controls_x}")
@@ -176,10 +176,10 @@ test_times = np.random.lognormal(1, 0.5, 1000)  # Right-skewed
 
 # Fit Bézier distributions to each phase
 dev_fitter = DistFit(dev_times, n=5)
-dev_rv, _ = dev_fitter.fit(method="mse", algorithm="projgrad")
+dev_rv, _ = dev_fitter.fit(method="mse", algorithm="projected_gradient")
 
 test_fitter = DistFit(test_times, n=5)
-test_rv, _ = test_fitter.fit(method="mse", algorithm="projgrad")
+test_rv, _ = test_fitter.fit(method="mse", algorithm="projected_gradient")
 
 print("Phase distributions fitted successfully")
 ```

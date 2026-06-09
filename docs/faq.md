@@ -52,7 +52,7 @@ for n in [3, 5, 7, 10]:
 
 ### Which optimization algorithm should I choose?
 
-**Recommendation**: Start with `projgrad`. Switch to `nonlinear` if you need better fits.
+**Recommendation**: Start with `projected_gradient`. Switch to `solver` if you need better fits.
 
 ### How do I know if my fit is good?
 
@@ -93,8 +93,8 @@ if len(data) > 10000:
 
 **2. Use faster algorithms:**
 ```python
-# projgrad is usually fastest (and is the default algorithm)
-fitter.fit(method="mse", algorithm="projgrad")
+# projected_gradient is usually fastest (and is the default algorithm)
+fitter.fit(method="mse", algorithm="projected_gradient")
 ```
 
 ## Still have questions?

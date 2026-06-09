@@ -16,8 +16,8 @@ def test_uniform_initial_x(normal_data):
 @pytest.mark.parametrize(
     "method, algorithm, options, target_metric",
     [
-        ("mse", "projgrad", ProjGradOptions(max_iter=100), 1e-2),
-        ("mse", "neldermead", NelderMeadOptions(), 1e-2),
+        ("mse", "projected_gradient", ProjGradOptions(max_iter=100), 1e-2),
+        ("mse", "nelder_mead", NelderMeadOptions(), 1e-2),
         ("mle", None, MLEOptions(), 140.0),
     ],
 )
@@ -26,7 +26,7 @@ def test_fit_dispatch_and_metric(normal_data, method, algorithm, options, target
     bez, metric = df.fit(method=method, algorithm=algorithm, options=options)
     assert metric <= target_metric
 
-def test_fit_nonlinear_dispatch(normal_data, monkeypatch):
+def test_fit_solver_dispatch(normal_data, monkeypatch):
     df = DistFit(normal_data, n=3)
     opts = NonLinearOptions()
     captured = {}
@@ -41,7 +41,7 @@ def test_fit_nonlinear_dispatch(normal_data, monkeypatch):
 
     monkeypatch.setattr(distfit_mod.nl, "fit", fake_fit)
 
-    _, metric = df.fit(method="mse", algorithm="nonlinear", options=opts)
+    _, metric = df.fit(method="mse", algorithm="solver", options=opts)
 
     assert metric == 0.123
     assert df.mse == 0.123

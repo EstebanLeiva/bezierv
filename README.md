@@ -50,7 +50,7 @@ data = rng.beta(2, 5, 1000)  # Example: skewed data
 
 # Fit a Bézier distribution (MSE objective, projected-gradient solver)
 fitter = DistFit(data, n=5)  # 5 control segments
-bezier_rv, mse = fitter.fit(method='mse', algorithm='projgrad')
+bezier_rv, mse = fitter.fit(method='mse', algorithm='projected_gradient')
 
 # Use the fitted distribution
 samples = bezier_rv.random(10000)      # Generate new samples
@@ -69,8 +69,8 @@ bezier_rv.plot_pdf()      # Show probability density
 from bezierv import DistFit, Convolver
 
 # Fit two distributions
-rv1, _ = DistFit(data1, n=4).fit(method='mse', algorithm='projgrad')
-rv2, _ = DistFit(data2, n=4).fit(method='mse', algorithm='projgrad')
+rv1, _ = DistFit(data1, n=4).fit(method='mse', algorithm='projected_gradient')
+rv2, _ = DistFit(data2, n=4).fit(method='mse', algorithm='projected_gradient')
 
 # Compute their sum: Z = X + Y
 convolver = Convolver([rv1, rv2])
@@ -117,9 +117,9 @@ bezierv includes multiple fitting algorithms optimized for different scenarios:
 
 | Objective | Algorithm | Call |
 |-----------|-----------|------|
-| MSE | Projected Gradient | `method='mse', algorithm='projgrad'` |
-| MSE | Nonlinear (IPOPT) | `method='mse', algorithm='nonlinear'` |
-| MSE | Nelder-Mead | `method='mse', algorithm='neldermead'` |
+| MSE | Projected Gradient | `method='mse', algorithm='projected_gradient'` |
+| MSE | Solver (IPOPT) | `method='mse', algorithm='solver'` |
+| MSE | Nelder-Mead | `method='mse', algorithm='nelder_mead'` |
 | MLE | Primal Gradient | `method='mle'` |
 
 `method='mse'` returns `(bezierv, mse)`. `method='mle'` returns `(bezierv, nll)`.

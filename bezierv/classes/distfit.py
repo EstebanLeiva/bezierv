@@ -1,5 +1,6 @@
 import numpy as np
 import copy
+import warnings
 from dataclasses import dataclass, field
 from bezierv.classes.bezierv import Bezierv
 from typing import List, Optional, Union
@@ -40,6 +41,13 @@ class MLEOptions:
 
 
 FitOptions = Union[ProjGradOptions, NonLinearOptions, NelderMeadOptions, MLEOptions]
+
+# Maps deprecated MSE algorithm names to their canonical replacements.
+_MSE_ALGORITHM_ALIASES = {
+    'projgrad': 'projected_gradient',
+    'nonlinear': 'solver',
+    'neldermead': 'nelder_mead',
+}
 
 
 class DistFit:
@@ -147,7 +155,7 @@ class DistFit:
 
     def fit(self,
             method: str='mse',
-            algorithm: str='projgrad',
+            algorithm: str='projected_gradient',
             options: FitOptions=None) -> tuple[Bezierv, float]:
         """
         Fit the bezierv distribution to the data.
@@ -159,13 +167,15 @@ class DistFit:
             or 'mle' for maximum likelihood estimation (default is 'mse').
         algorithm : str, optional
             The fitting algorithm to use when ``method='mse'``. Options are
-            'projgrad', 'nonlinear', or 'neldermead'. Ignored when
-            ``method='mle'``. Default is 'projgrad'.
+            'projected_gradient', 'solver', or 'nelder_mead'. Ignored when
+            ``method='mle'``. Default is 'projected_gradient'. The legacy names
+            'projgrad', 'nonlinear', and 'neldermead' are still accepted as
+            deprecated aliases.
         options : FitOptions, optional
             Algorithm-specific options. Must match the chosen method/algorithm:
-            ``ProjGradOptions`` for ('mse', 'projgrad'),
-            ``NonLinearOptions`` for ('mse', 'nonlinear'),
-            ``NelderMeadOptions`` for ('mse', 'neldermead'),
+            ``ProjGradOptions`` for ('mse', 'projected_gradient'),
+            ``NonLinearOptions`` for ('mse', 'solver'),
+            ``NelderMeadOptions`` for ('mse', 'nelder_mead'),
             ``MLEOptions`` for ('mle'). Defaults to the matching dataclass
             with its default field values.
 
@@ -179,7 +189,17 @@ class DistFit:
           negative log-likelihood when ``method='mle'``.  
         """
         if method == 'mse':
-            if algorithm == 'projgrad':
+            if algorithm in _MSE_ALGORITHM_ALIASES:
+                canonical = _MSE_ALGORITHM_ALIASES[algorithm]
+                warnings.warn(
+                    f"algorithm='{algorithm}' is deprecated; use "
+                    f"algorithm='{canonical}' instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                algorithm = canonical
+
+            if algorithm == 'projected_gradient':
                 opts = options if options is not None else ProjGradOptions()
                 self._check_options(opts, ProjGradOptions)
                 self.bezierv, metric = pg.fit(
@@ -193,7 +213,7 @@ class DistFit:
                     opts.max_iter,
                     opts.threshold)
                 self.mse = metric
-            elif algorithm == 'nonlinear':
+            elif algorithm == 'solver':
                 opts = options if options is not None else NonLinearOptions()
                 self._check_options(opts, NonLinearOptions)
                 self.bezierv, metric = nl.fit(
@@ -209,7 +229,7 @@ class DistFit:
                     opts.solver_options,
                     feas_tol=opts.feas_tol)
                 self.mse = metric
-            elif algorithm == 'neldermead':
+            elif algorithm == 'nelder_mead':
                 opts = options if options is not None else NelderMeadOptions()
                 self._check_options(opts, NelderMeadOptions)
                 self.bezierv, metric = nm.fit(
@@ -223,7 +243,7 @@ class DistFit:
                     opts.max_iter)
                 self.mse = metric
             else:
-                raise ValueError("Algorithm not recognized. Use 'projgrad', 'nonlinear', or 'neldermead'.")
+                raise ValueError("Algorithm not recognized. Use 'projected_gradient', 'solver', or 'nelder_mead'.")
 
         elif method == 'mle':
             opts = options if options is not None else MLEOptions()

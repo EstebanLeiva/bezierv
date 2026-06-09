@@ -107,11 +107,11 @@ Fits Bézier distributions to empirical data using various optimization algorith
     # The step size defaults to η = 1/β with β = (2/m) λ_max(BᵀB), the
     # Lipschitz constant of the MSE gradient — no manual tuning needed.
     fitter = DistFit(data, n=5)
-    bezier_rv, mse = fitter.fit(algorithm="projgrad")
+    bezier_rv, mse = fitter.fit(algorithm="projected_gradient")
 
     # Or override the automatic step size and other tunables
     bezier_rv, mse = fitter.fit(
-        algorithm="projgrad",
+        algorithm="projected_gradient",
         options=ProjGradOptions(step_size=5e-4, max_iter=2000, threshold=1e-4),
     )
 
@@ -130,9 +130,9 @@ grouped into dataclasses. Pass an instance of the matching dataclass as the
 
 | Method + Algorithm           | Options class        | Fields (defaults)                                                                                |
 |------------------------------|----------------------|--------------------------------------------------------------------------------------------------|
-| `mse` + `projgrad`           | `ProjGradOptions`    | `step_size=None` (auto: ``η = 1/β``, ``β = (2/m) λ_max(BᵀB)``), `max_iter=1000`, `threshold=1e-3` |
-| `mse` + `nonlinear`          | `NonLinearOptions`   | `solver='ipopt'`, `solver_options={'timelimit': 60, 'tee': False}`                               |
-| `mse` + `neldermead`         | `NelderMeadOptions`  | `max_iter=1000`                                                                                  |
+| `mse` + `projected_gradient` | `ProjGradOptions`    | `step_size=None` (auto: ``η = 1/β``, ``β = (2/m) λ_max(BᵀB)``), `max_iter=1000`, `threshold=1e-3` |
+| `mse` + `solver`             | `NonLinearOptions`   | `solver='ipopt'`, `solver_options={'timelimit': 60, 'tee': False}`                               |
+| `mse` + `nelder_mead`        | `NelderMeadOptions`  | `max_iter=1000`                                                                                  |
 | `mle`                        | `MLEOptions`         | `max_iter=1000`, `tol=1e-3`, `tol_res_root=1e-5`, `tol_lambda_root=1e-5`, `max_iters_root=100`   |
 
 ```python
@@ -151,7 +151,7 @@ fitter.fit()
 # (``timelimit``, ``tee``) sit at the top level, solver-native options
 # under ``options``.
 fitter.fit(
-    algorithm="nonlinear",
+    algorithm="solver",
     options=NonLinearOptions(
         solver="ipopt",
         solver_options={"timelimit": 120, "tee": False, "options": {"max_iter": 5000, "tol": 1e-8}},
@@ -163,7 +163,7 @@ fitter.fit(method="mle", options=MLEOptions(tol=1e-6, max_iter=5000))
 ```
 
 !!! warning "Options type must match the algorithm"
-    Passing `ProjGradOptions` while selecting `algorithm="nonlinear"` raises
+    Passing `ProjGradOptions` while selecting `algorithm="solver"` raises
     `TypeError`. The options class encodes the algorithm choice.
 
 ---

@@ -14,7 +14,7 @@
 ## ✨ Key Features
 
 - **🎯 Flexible Fitting**: Adapt to any continuous distribution shape
-- **⚡ Multiple Algorithms**: 3 MSE algorithms (projgrad, nonlinear, neldermead) plus MLE fitting
+- **⚡ Multiple Algorithms**: 3 MSE algorithms (projected_gradient, solver, nelder_mead) plus MLE fitting
 - **🔄 Convolution Support**: Compute sums of random variables exactly or via Monte Carlo  
 - **🎮 Interactive Tools**: Browser-based curve editor with real-time updates
 - **📊 Rich Visualization**: Built-in plotting for CDFs, PDFs, and control points
@@ -46,7 +46,7 @@ data = rng.beta(2, 5, 1000)  # Skewed distribution
 
 # Fit Bézier distribution
 fitter = DistFit(data, n=5)  # 5 control segments (6 control points)
-bezier_rv, mse = fitter.fit(method='mse', algorithm='projgrad')
+bezier_rv, mse = fitter.fit(method='mse', algorithm='projected_gradient')
 
 print(f"Fit completed with MSE: {mse:.6f}")
 
@@ -128,8 +128,8 @@ rng = np.random.default_rng(42)
 data1 = rng.gamma(2, 2, 1000)
 data2 = rng.exponential(1, 1000)
 
-rv1, _ = DistFit(data1, n=4).fit(method='mse', algorithm='projgrad')
-rv2, _ = DistFit(data2, n=4).fit(method='mse', algorithm='projgrad')
+rv1, _ = DistFit(data1, n=4).fit(method='mse', algorithm='projected_gradient')
+rv2, _ = DistFit(data2, n=4).fit(method='mse', algorithm='projected_gradient')
 
 # Compute their sum via Monte Carlo
 convolver = Convolver([rv1, rv2])
@@ -146,9 +146,9 @@ Choose the best algorithm for your use case:
 
 | Objective | Algorithm | Call | Options class |
 |-----------|-----------|------|---------------|
-| **MSE** | Projected Gradient | `method='mse', algorithm='projgrad'` | `ProjGradOptions` |
-| **MSE** | Nonlinear Optimization | `method='mse', algorithm='nonlinear'` | `NonLinearOptions` |
-| **MSE** | Nelder-Mead | `method='mse', algorithm='neldermead'` | `NelderMeadOptions` |
+| **MSE** | Projected Gradient | `method='mse', algorithm='projected_gradient'` | `ProjGradOptions` |
+| **MSE** | Nonlinear Optimization | `method='mse', algorithm='solver'` | `NonLinearOptions` |
+| **MSE** | Nelder-Mead | `method='mse', algorithm='nelder_mead'` | `NelderMeadOptions` |
 | **MLE** | Primal Gradient | `method='mle'` | `MLEOptions` |
 
 Algorithm-specific tunables (step sizes, iteration caps, solver choice, tolerances) live on small
@@ -164,10 +164,10 @@ from bezierv.classes.distfit import ProjGradOptions, NelderMeadOptions, MLEOptio
 rng = np.random.default_rng(42)
 data = rng.beta(2, 5, 1000)
 
-# MSE-based algorithms (nonlinear is excluded)
+# MSE-based algorithms (solver is excluded)
 mse_jobs = [
-    ("projgrad",   ProjGradOptions(max_iter=2000)),
-    ("neldermead", NelderMeadOptions()),
+    ("projected_gradient", ProjGradOptions(max_iter=2000)),
+    ("nelder_mead",        NelderMeadOptions()),
 ]
 for algo, opts in mse_jobs:
     fitter = DistFit(data, n=5)
@@ -197,7 +197,7 @@ data_bimodal = np.concatenate([
 
 # Use more control points for complex shapes
 fitter = DistFit(data_bimodal, n=10)
-bimodal_rv, mse = fitter.fit(method='mse', algorithm='nonlinear')  # uses NonLinearOptions defaults
+bimodal_rv, mse = fitter.fit(method='mse', algorithm='solver')  # uses NonLinearOptions defaults
 
 # Visualize the complex fit
 bimodal_rv.plot_pdf()
@@ -218,8 +218,8 @@ bimodal_rv.plot_pdf()
 
 ### Algorithm Selection Guide
 
-1. **Start with `method='mse', algorithm='projgrad'`** - fastest, works well for most cases
-2. **Try `method='mse', algorithm='nonlinear'`** if you need highest MSE accuracy
+1. **Start with `method='mse', algorithm='projected_gradient'`** - fastest, works well for most cases
+2. **Try `method='mse', algorithm='solver'`** if you need highest MSE accuracy
 3. **Use `method='mle'`** to fit by maximum likelihood (returns NLL instead of MSE)
 
 ### Performance Tips
@@ -230,7 +230,7 @@ if len(data) > 10000:
     rng = np.random.default_rng(42)
     subset = rng.choice(data, 5000, replace=False)
     fitter = DistFit(subset, n=5)
-    quick_fit, _ = fitter.fit(method='mse', algorithm='projgrad')
+    quick_fit, _ = fitter.fit(method='mse', algorithm='projected_gradient')
 ```
 
 ---
