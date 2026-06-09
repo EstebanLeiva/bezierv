@@ -52,7 +52,7 @@ print(f"Fit completed with MSE: {mse:.6f}")
 
 # Use the fitted distribution
 samples = bezier_rv.random(100)      # Generate new samples
-mean = bezier_rv.get_mean()            # Compute mean
+mean = bezier_rv.mean()            # Compute mean
 q90 = bezier_rv.quantile(0.90)         # 90th percentile
 cdf_val = bezier_rv.cdf_x(0.5)         # P(X ≤ 0.5)
 
@@ -135,7 +135,7 @@ rv2, _ = DistFit(data2, n=4).fit(method='mse', algorithm='projgrad')
 convolver = Convolver([rv1, rv2])
 sum_rv, _ = convolver.convolve(n_sims=10000, rng=42)
 
-print(f"Sum mean: {sum_rv.get_mean():.3f}")
+print(f"Sum mean: {sum_rv.mean():.3f}")
 ```
 
 ---
@@ -172,12 +172,12 @@ mse_jobs = [
 for algo, opts in mse_jobs:
     fitter = DistFit(data, n=5)
     bz, mse = fitter.fit(method='mse', algorithm=algo, options=opts)
-    print(f"mse/{algo:12s}: MSE = {mse:.6f}, Mean = {bz.get_mean():.4f}")
+    print(f"mse/{algo:12s}: MSE = {mse:.6f}, Mean = {bz.mean():.4f}")
 
 # MLE fitting with a tighter tolerance
 fitter = DistFit(data, n=5)
 bz_mle, nll = fitter.fit(method='mle', options=MLEOptions(tol=1e-6))
-print(f"mle/primgrad  : NLL = {nll:.6f}, Mean = {bz_mle.get_mean():.4f}")
+print(f"mle/primgrad  : NLL = {nll:.6f}, Mean = {bz_mle.mean():.4f}")
 ```
 
 ---

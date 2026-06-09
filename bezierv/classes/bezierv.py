@@ -405,7 +405,7 @@ class Bezierv:
             pdf_num_z += self.bernstein(t, i, self.comb_minus, self.n - 1) * self.deltas_z[i]
         return pdf_num_z
 
-    def get_raw_moment(self, r: int) -> float:
+    def raw_moment(self, r: int) -> float:
         """
         Compute and cache the raw moment ``E[X^r]`` of the distribution.
 
@@ -441,28 +441,28 @@ class Bezierv:
         self.raw_moments[r] = value
         return value
 
-    def get_mean(self) -> float:
+    def mean(self) -> float:
         """Mean ``E[X]`` (closed form)."""
-        return self.get_raw_moment(1)
+        return self.raw_moment(1)
 
-    def get_variance(self) -> float:
+    def variance(self) -> float:
         """Variance ``E[X^2] - E[X]^2``."""
-        m1 = self.get_raw_moment(1)
-        return self.get_raw_moment(2) - m1**2
+        m1 = self.raw_moment(1)
+        return self.raw_moment(2) - m1**2
 
-    def get_skewness(self) -> float:
+    def skewness(self) -> float:
         """Skewness ``E[(X - μ)^3] / σ^3``."""
-        m1 = self.get_raw_moment(1)
-        var = self.get_raw_moment(2) - m1**2
-        return (self.get_raw_moment(3) - 3 * m1 * var - m1**3) / var**1.5
+        m1 = self.raw_moment(1)
+        var = self.raw_moment(2) - m1**2
+        return (self.raw_moment(3) - 3 * m1 * var - m1**3) / var**1.5
 
-    def get_kurtosis(self) -> float:
+    def kurtosis(self) -> float:
         """Kurtosis ``E[(X - μ)^4] / σ^4`` (Pearson, not excess)."""
-        m1 = self.get_raw_moment(1)
-        var = self.get_raw_moment(2) - m1**2
+        m1 = self.raw_moment(1)
+        var = self.raw_moment(2) - m1**2
         return (
-            self.get_raw_moment(4)
-            - 4 * m1 * self.get_raw_moment(3)
+            self.raw_moment(4)
+            - 4 * m1 * self.raw_moment(3)
             + 6 * m1**2 * var
             + 3 * m1**4
         ) / var**2

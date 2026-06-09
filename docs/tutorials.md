@@ -133,7 +133,7 @@ plt.show()
 
 ```python
 # Calculate statistics
-mean_wait = bezier_rv.get_mean()
+mean_wait = bezier_rv.mean()
 q50 = bezier_rv.quantile(0.5)   # Median
 q90 = bezier_rv.quantile(0.9)   # 90th percentile
 q95 = bezier_rv.quantile(0.95)  # 95th percentile
@@ -196,7 +196,7 @@ convolver = Convolver([dev_rv, test_rv])
 total_time_mc, _ = convolver.convolve(n_sims=100, rng=42, n=6)
 
 print(f"Monte Carlo convolution completed")
-print(f"Expected total time: {total_time_mc.get_mean():.2f} days")
+print(f"Expected total time: {total_time_mc.mean():.2f} days")
 ```
 
 ## Tutorial 3: Interactive Bézier Editor

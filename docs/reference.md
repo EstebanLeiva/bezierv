@@ -208,7 +208,7 @@ Computes convolutions (sums) of independent Bézier random variables using Monte
     
     total_mc, _ = convolver.convolve(n_sims=1000, rng=42)
     
-    print(f"Expected total time (MC): {total_mc.get_mean():.2f}")
+    print(f"Expected total time (MC): {total_mc.mean():.2f}")
     ```
 
 ---

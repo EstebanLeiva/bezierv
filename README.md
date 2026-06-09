@@ -55,7 +55,7 @@ bezier_rv, mse = fitter.fit(method='mse', algorithm='projgrad')
 # Use the fitted distribution
 samples = bezier_rv.random(10000)      # Generate new samples
 q90 = bezier_rv.quantile(0.90)         # 90th percentile
-mean = bezier_rv.get_mean()            # Distribution mean
+mean = bezier_rv.mean()            # Distribution mean
 prob = bezier_rv.cdf_x(0.5)            # P(X <= 0.5)
 
 # Visualize the fit
