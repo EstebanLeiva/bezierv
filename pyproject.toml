@@ -15,7 +15,7 @@ authors = [
 maintainers = [
   { name = "Esteban Leiva", email = "e.leivam@uniandes.edu.co" },
 ]
-keywords = ["bezier", "distribution", "optimization"]
+keywords = ["bezier", "distribution", "optimization", "simulation", "input analysis", "unimodal distribution", "distribution fitting"]
 
 requires-python = ">=3.10,<3.14"
 classifiers = [
@@ -24,6 +24,12 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Developers",
+  "Topic :: Scientific/Engineering :: Mathematics",
+  "Topic :: Scientific/Engineering",
+  "Operating System :: OS Independent",
+  "Natural Language :: English",
 ]
 
 dependencies = [
@@ -63,3 +69,4 @@ dependencies = [
 [project.urls]
 Documentation = "https://estebanleiva.github.io/bezierv/"
 Source        = "https://github.com/EstebanLeiva/bezierv"
+Issues        = "https://github.com/EstebanLeiva/bezierv/issues"
