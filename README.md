@@ -131,11 +131,14 @@ bezierv includes multiple fitting algorithms optimized for different scenarios:
 If you use **bezierv** in your research, please cite the accompanying paper (forthcoming on arXiv):
 
 ```bibtex
-@article{leiva2026bezierv,
-  title   = {Computational Framework for {B\'{e}zier} Distributions},
-  author  = {Leiva, Esteban and Medaglia, Andr\'{e}s L. and Zuluaga, Luis F.},
-  year    = {2026},
-  note    = {Forthcoming on arXiv}
+@misc{Leiva2026,
+      title={Computational Framework for B\'ezier Distributions}, 
+      author={Esteban Leiva and Andrés L. Medaglia and Luis F. Zuluaga},
+      year={2026},
+      eprint={2606.23841},
+      archivePrefix={arXiv},
+      primaryClass={math.OC},
+      url={https://arxiv.org/abs/2606.23841}, 
 }
 ```
 
