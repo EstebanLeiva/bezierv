@@ -245,7 +245,7 @@ if len(data) > 10000:
 
 ## 📄 Citation
 
-If you use **bezierv** in your research, please cite the accompanying paper (forthcoming on arXiv):
+If you use **bezierv** in your research, please cite the accompanying preprint:
 
 ```bibtex
 @misc{Leiva2026,
